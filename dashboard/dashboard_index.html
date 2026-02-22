@@ -120,6 +120,7 @@ canvas{width:100%!important}
   <button class="tab" data-p="time">Time Tracking</button>
   <button class="tab" data-p="gantt">Gantt Chart</button>
   <button class="tab" data-p="commits">Commits</button>
+  <button class="tab" data-p="guide">How to Use</button>
 </div>
 
 <!-- ═══ OVERVIEW ═══ -->
@@ -179,9 +180,73 @@ canvas{width:100%!important}
   </div>
 </div>
 
+<!-- ═══ HOW TO USE ═══ -->
+<div class="P" id="p-guide">
+  <div class="card" style="max-width:800px;margin:0 auto;line-height:1.8">
+    <div class="ct">How to Use This Dashboard</div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Task IDs — what is #T01?</div>
+      <div class="note" style="margin:0">
+        Every task has an ID like <code>#T01</code>, <code>#T12</code> etc. You use these in git commit messages to link your work to a task automatically.<br><br>
+        <b>Example:</b> <code>git commit -m "Add if/else codegen #T12 [2h]"</code><br><br>
+        The dashboard will show that commit under T12, count the 2h towards its time total, and tag it as <code>codegen</code> and <code>control-flow</code> automatically.
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Adding &amp; Editing Tasks</div>
+      <div class="note" style="margin:0">
+        <b>From the dashboard</b> (recommended): Go to the <b>Task Board</b> tab → click <b>+ New Task</b> to add, or expand any task with ▸ and click <b>Edit Task</b>. Changes save instantly to AWS — no commit needed.<br><br>
+        Tasks are stored in <b>DynamoDB</b>, not in any file in the repo. Both partners see changes immediately.
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Time Tracking — auto vs manual</div>
+      <div class="note" style="margin:0">
+        <b>Auto (from git commits):</b> Add a time tag to your commit message:<br>
+        <code>[2h]</code> — 2 hours &nbsp;·&nbsp; <code>[45m]</code> — 45 minutes &nbsp;·&nbsp; <code>[1h30m]</code> — 1.5 hours &nbsp;·&nbsp; <code>[2.5h]</code> — 2.5 hours<br><br>
+        This time is parsed automatically on every push and linked to whichever task IDs appear in the same commit message.<br><br>
+        <b>Manual (logged_hours):</b> Expand a task on the Task Board → click <b>Edit Task</b> → update the <b>Logged Hours</b> field. This is useful for time you forgot to log in a commit, or study/planning time with no commit.<br><br>
+        <b>Total time</b> shown on the dashboard = <code>logged_hours</code> (manual) + time parsed from git commits.
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Status badges</div>
+      <div class="note" style="margin:0">
+        Click any status badge on the Task Board to cycle it: <code>todo</code> → <code>progress</code> → <code>done</code> → <code>todo</code>.<br>
+        Or expand a task and use Edit Task for more control. Status saves instantly to AWS.
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">How the dashboard updates</div>
+      <div class="note" style="margin:0">
+        <b>Tasks</b> (add/edit/status): update live immediately from this page — no push needed.<br><br>
+        <b>Git stats</b> (commits, time from messages, contributor charts): updated automatically by GitHub Actions on every push to main. Takes ~30 seconds after a push.<br><br>
+        The dashboard URL is: <code>http://compilates-dashboard.s3-website.eu-north-1.amazonaws.com</code>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Commit message format (full reference)</div>
+      <div class="note" style="margin:0">
+        <code>git commit -m "description #T01 #T02 [2h]"</code><br><br>
+        — Multiple task IDs are allowed; time is split equally between them<br>
+        — Task ID and time tag are both optional; a commit with neither still appears in the log<br>
+        — Time without a task ID is counted in overall totals but not linked to any task<br><br>
+        <b>Auto-detected categories</b> from keywords in your message:<br>
+        <code>parser</code> · <code>lexer</code> · <code>codegen</code> · <code>context</code> · <code>testing</code> · <code>float</code> · <code>memory</code> · <code>control-flow</code> · <code>bugfix</code> · <code>docs</code> · <code>refactor</code> · <code>infra</code>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="ft">
-  Regenerate: <code>python3 scripts/generate_dashboard_data.py</code> then commit <code>docs/dashboard_data.json</code><br>
-  Commit format: <code>git commit -m "message #T01 [2h]"</code> · Deploy via GitHub Pages → docs/ folder
+  Regenerate: <code>python3 dashboard/generate_dashboard_data.py</code> then push — GitHub Actions uploads to S3 automatically.<br>
+  Commit format: <code>git commit -m "message #T01 [2h]"</code>
 </div>
 </div>
 

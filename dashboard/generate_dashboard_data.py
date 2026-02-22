@@ -24,7 +24,7 @@ from datetime import datetime
 from collections import defaultdict, Counter
 from pathlib import Path
 
-OUTPUT = "docs/dashboard_data.json"
+OUTPUT = "dashboard_data.json"
 DEADLINE = "2026-03-20T15:00:00"
 PROJECT_START = "2026-02-22T21:31:00"
 
@@ -230,7 +230,6 @@ def main():
     }
 
     out = os.path.join(repo_root(), OUTPUT)
-    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f: json.dump(data, f, indent=2)
 
     linked = sum(1 for c in commits if c["task_ids"])
