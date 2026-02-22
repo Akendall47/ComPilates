@@ -1,0 +1,50 @@
+name: Update Dashboard
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git log
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Generate dashboard data
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    eu-north-1
+          DYNAMODB_TABLE:        compilates-tasks
+          PROJECT_ID:            compilates-2025
+        run: python3 dashboard/generate_dashboard_data.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "Dashboard Bot"
+          git config user.email "bot@noreply"
+          git add docs/dashboard_data.json
+          git diff --staged --quiet || git commit -m "Update dashboard data [auto]"
+          git push
+
+      - name: Upload to S3
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    eu-north-1
+        run: |
+          aws s3 cp dashboard/dashboard_index.html s3://compilates-dashboard/index.html
+          aws s3 cp docs/dashboard_data.json s3://compilates-dashboard/dashboard_data.json

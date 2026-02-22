@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compiler CW — Project Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+:root{--bg:#090c10;--s1:#0f1318;--s2:#161c24;--s3:#1e2730;--s4:#28333f;--bd:#243040;--tx:#c8d4e2;--dim:#5c7085;--blue:#4db8ff;--green:#6dd674;--orange:#ff9f43;--purple:#b68aff;--pink:#ff6fa8;--red:#ff5757;--cyan:#47d4b2;--yellow:#ffd54f;--mono:'IBM Plex Mono',monospace;--sans:'Instrument Sans',system-ui,sans-serif;--r:10px}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);line-height:1.6;min-height:100vh}
+.shell{max-width:1400px;margin:0 auto;padding:1.5rem}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);padding-bottom:1rem;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.top h1{font-size:1.3rem;font-weight:700;letter-spacing:-.02em}.top h1 em{font-style:normal;color:var(--blue)}
+.top .m{font-family:var(--mono);font-size:.7rem;color:var(--dim);text-align:right;line-height:1.4}
+.tabs{display:flex;gap:2px;background:var(--s2);border-radius:8px;padding:3px;margin-bottom:1.2rem;overflow-x:auto}
+.tab{font-family:var(--mono);font-size:.74rem;font-weight:500;padding:.45rem .9rem;border-radius:6px;cursor:pointer;color:var(--dim);white-space:nowrap;transition:.15s;border:none;background:none}
+.tab:hover{color:var(--tx);background:var(--s3)}.tab.on{color:var(--blue);background:var(--s3)}
+.P{display:none}.P.on{display:block;animation:fi .2s ease}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.6rem;margin-bottom:1.2rem}
+.kpi{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:.9rem 1rem;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.b::after{background:var(--blue)}.kpi.g::after{background:var(--green)}.kpi.o::after{background:var(--orange)}.kpi.r::after{background:var(--red)}.kpi.p::after{background:var(--purple)}
+.kl{font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);font-weight:600}
+.kv{font-family:var(--mono);font-size:1.5rem;font-weight:700;margin-top:.1rem}.ks{font-size:.73rem;color:var(--dim);margin-top:.1rem}
+.row{display:grid;gap:.6rem;margin-bottom:.6rem}.r2{grid-template-columns:1fr 1fr}.r3{grid-template-columns:1fr 1fr 1fr}.r32{grid-template-columns:3fr 2fr}.r23{grid-template-columns:2fr 3fr}
+@media(max-width:900px){.r2,.r3,.r32,.r23{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem;overflow:hidden}
+.ct{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);font-weight:600;margin-bottom:.7rem;display:flex;justify-content:space-between;align-items:center}
+canvas{width:100%!important}
+/* Task board */
+.task{display:grid;grid-template-columns:50px 1fr 70px 60px 50px 80px 70px 30px;gap:.4rem;padding:.5rem .6rem;border-bottom:1px solid rgba(36,48,64,.4);font-size:.8rem;align-items:center;transition:background .1s}
+.task:hover{background:var(--s2)}.task.hdr{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+.task.hdr:hover{background:transparent}
+.task.milestone{background:rgba(182,138,255,.04);border-left:3px solid var(--purple)}
+.tid{font-family:var(--mono);font-size:.72rem;color:var(--blue);font-weight:600}
+.tname{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tcat{font-family:var(--mono);font-size:.65rem;padding:.1rem .4rem;border-radius:4px;text-align:center}
+.tstat{font-family:var(--mono);font-size:.65rem;font-weight:600;padding:.12rem .45rem;border-radius:4px;text-align:center;cursor:pointer}
+.tstat.todo{background:rgba(92,112,133,.15);color:var(--dim)}.tstat.progress{background:rgba(77,184,255,.15);color:var(--blue)}.tstat.done{background:rgba(109,214,116,.15);color:var(--green)}.tstat.blocked{background:rgba(255,87,87,.15);color:var(--red)}
+.twk{font-family:var(--mono);font-size:.72rem;color:var(--purple);font-weight:600;text-align:center}
+.thrs{font-family:var(--mono);font-size:.72rem;text-align:right}
+.tcmt{font-family:var(--mono);font-size:.68rem;color:var(--dim);text-align:center}
+.texp{cursor:pointer;color:var(--dim);font-size:.8rem;text-align:center;transition:color .1s}.texp:hover{color:var(--tx)}
+/* Task detail */
+.tdetail{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:.8rem;margin:.3rem 0 .6rem;font-size:.82rem;display:none}
+.tdetail.open{display:block;animation:fi .15s ease}
+.tdetail .row-d{display:flex;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap;align-items:center}
+.tdetail label{font-size:.68rem;color:var(--dim);text-transform:uppercase;font-weight:600}
+.tdetail input,.tdetail select{font-family:var(--mono);font-size:.78rem;padding:.3rem .5rem;background:var(--s1);border:1px solid var(--bd);border-radius:5px;color:var(--tx);outline:none}
+.tdetail input:focus,.tdetail select:focus{border-color:var(--blue)}
+.btn{font-family:var(--mono);font-size:.72rem;font-weight:600;padding:.35rem .8rem;border-radius:6px;border:none;cursor:pointer;transition:.15s}
+.btn-p{background:var(--blue);color:var(--bg)}.btn-p:hover{filter:brightness(1.15)}
+.btn-g{background:var(--s3);color:var(--dim)}.btn-g:hover{color:var(--tx)}
+.btn-d{background:var(--red);color:#fff}.btn-d:hover{filter:brightness(1.15)}
+.chip{display:inline-flex;align-items:center;gap:.2rem;font-family:var(--mono);font-size:.65rem;font-weight:600;padding:.12rem .45rem;border-radius:4px;margin:.1rem}
+.linked-commit{display:flex;align-items:center;gap:.5rem;padding:.25rem .4rem;background:var(--s1);border-radius:4px;margin:.15rem 0;font-size:.75rem}
+.linked-commit .h{font-family:var(--mono);color:var(--blue);font-size:.7rem;flex-shrink:0}
+.linked-commit .msg{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linked-commit .t{font-family:var(--mono);color:var(--green);font-size:.68rem}
+/* Gantt */
+.gantt-row{display:flex;align-items:center;margin-bottom:.35rem;min-height:26px}
+.gantt-lbl{width:140px;flex-shrink:0;font-size:.75rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.5rem}
+.gantt-track{flex:1;height:22px;background:var(--s2);border-radius:4px;position:relative;overflow:visible}
+.gantt-bar{position:absolute;height:100%;border-radius:4px;top:0;display:flex;align-items:center;padding:0 .3rem;font-family:var(--mono);font-size:.58rem;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:5}
+/* PVA */
+.pva{margin-bottom:.7rem}.pva-h{display:flex;justify-content:space-between;font-size:.8rem;font-weight:600;margin-bottom:.25rem}
+.pva-b{display:flex;align-items:center;gap:.4rem;margin-bottom:.15rem}
+.pva-t{font-family:var(--mono);font-size:.64rem;color:var(--dim);width:50px;flex-shrink:0}
+.pva-tr{flex:1;height:13px;background:var(--s2);border-radius:3px;overflow:hidden}
+.pva-f{height:100%;border-radius:3px}.pva-v{font-family:var(--mono);font-size:.66rem;width:38px;text-align:right;flex-shrink:0}
+/* Commit log */
+.log{max-height:500px;overflow-y:auto}
+.log-r{display:grid;grid-template-columns:56px 1fr 55px auto;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid rgba(36,48,64,.4);font-size:.78rem;align-items:center}
+.log-r:hover{background:var(--s2)}
+.log-h{font-family:var(--mono);font-size:.7rem;color:var(--blue)}
+.log-m{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-tm{font-family:var(--mono);font-size:.68rem;text-align:right}
+.log-tm.y{color:var(--green)}.log-tm.n{color:var(--s4)}
+.log-a{font-size:.66rem;color:var(--dim);text-align:right;white-space:nowrap}
+.log-tags{display:flex;gap:.15rem;margin-top:.08rem}
+.log-tg{font-family:var(--mono);font-size:.56rem;padding:.02rem .28rem;border-radius:3px;background:var(--s3);color:var(--dim)}
+.log-tid{font-family:var(--mono);font-size:.56rem;padding:.02rem .28rem;border-radius:3px;background:rgba(77,184,255,.12);color:var(--blue)}
+/* Pie legend */
+.pl{font-size:.76rem}.pli{display:flex;align-items:center;gap:.35rem;margin-bottom:.25rem}
+.pls{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.pic{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;justify-content:center}
+/* Note */
+.note{font-size:.8rem;color:var(--dim);background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:.8rem 1rem;margin:.8rem 0;line-height:1.55}
+.note code{font-family:var(--mono);background:var(--s3);padding:.1rem .3rem;border-radius:3px;color:var(--tx)}
+.note b{color:var(--tx)}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex;animation:fi .15s ease}
+.modal-box{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:1.5rem;width:min(500px,95vw);max-height:90vh;overflow-y:auto}
+.modal-title{font-weight:700;font-size:1rem;margin-bottom:1rem}
+.mfield{display:flex;flex-direction:column;gap:.2rem}
+.mfield label{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);font-weight:600}
+.mfield input,.mfield select,.mfield textarea{font-family:var(--mono);font-size:.78rem;padding:.35rem .5rem;background:var(--s2);border:1px solid var(--bd);border-radius:5px;color:var(--tx);outline:none}
+.mfield input:focus,.mfield select:focus,.mfield textarea:focus{border-color:var(--blue)}
+.mgrid2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.mgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem}
+.merr{color:var(--red);font-size:.74rem;margin-top:.4rem;display:none}
+.ft{text-align:center;font-size:.66rem;color:var(--dim);padding:1.5rem 0 1rem;border-top:1px solid var(--bd);margin-top:1.5rem}
+.ft code{font-family:var(--mono);background:var(--s2);padding:.1rem .3rem;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="top">
+  <h1>📊 <em>C90→RISC-V</em> Compiler Dashboard</h1>
+  <div class="m" id="meta"></div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab on" data-p="overview">Overview</button>
+  <button class="tab" data-p="tasks">Task Board</button>
+  <button class="tab" data-p="time">Time Tracking</button>
+  <button class="tab" data-p="gantt">Gantt Chart</button>
+  <button class="tab" data-p="commits">Commits</button>
+</div>
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="P on" id="p-overview">
+  <div class="kpis" id="kpis"></div>
+  <div class="row r2">
+    <div class="card"><div class="ct">Daily Commits</div><canvas id="cDaily" height="160"></canvas></div>
+    <div class="card"><div class="ct">Commit Categories</div><div class="pic"><canvas id="cPie" width="190" height="190" style="max-width:190px;max-height:190px"></canvas><div class="pl" id="pieLeg"></div></div></div>
+  </div>
+  <div class="row r2">
+    <div class="card"><div class="ct">Test Cases (seen)</div><div id="testBars"></div></div>
+    <div class="card"><div class="ct">Contributors</div><div id="authCards"></div></div>
+  </div>
+</div>
+
+<!-- ═══ TASK BOARD ═══ -->
+<div class="P" id="p-tasks">
+  <div class="note" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem">
+    <div><b>Live task board</b> — edits save instantly to AWS. Link commits with <code>#T01</code> in your message. Log time with <code>[2h]</code> or <code>[45m]</code>. Click a status badge to cycle it, or ▸ to expand.</div>
+    <button class="btn btn-p" onclick="showAddTaskModal()" style="white-space:nowrap;flex-shrink:0">+ New Task</button>
+  </div>
+  <div class="row r3" id="taskStats"></div>
+  <div class="card" style="padding:.6rem">
+    <div class="task hdr"><div>ID</div><div>Task</div><div>Category</div><div>Status</div><div>Wk</div><div>Plan / Actual</div><div>Commits</div><div></div></div>
+    <div id="taskList"></div>
+  </div>
+</div>
+
+<!-- ═══ TIME TRACKING ═══ -->
+<div class="P" id="p-time">
+  <div class="note">
+    <b>Two ways to track time:</b><br>
+    ① In commit messages: <code>git commit -m "Add if/else #T12 [2.5h]"</code> — auto-parsed and linked to task.<br>
+    ② Manually: expand any task on the Task Board tab and use "Log time" to add hours. Edit <code>logged_hours</code> in <code>tasks.json</code> then commit.
+  </div>
+  <div class="ct" style="margin-top:1rem">Planned vs Actual — Per Week (both partners combined)</div>
+  <div class="card" id="pvaCard"></div>
+  <div class="row r2" style="margin-top:.6rem">
+    <div class="card"><div class="ct">Time by Category</div><div class="pic"><canvas id="cTimePie" width="190" height="190" style="max-width:190px;max-height:190px"></canvas><div class="pl" id="timePieLeg"></div></div></div>
+    <div class="card"><div class="ct">Task Completion</div><div id="taskCompBars"></div></div>
+  </div>
+</div>
+
+<!-- ═══ GANTT ═══ -->
+<div class="P" id="p-gantt">
+  <div class="card">
+    <div class="ct">Task Gantt — Weeks 1 to 4 <span style="font-weight:400;text-transform:none;font-size:.62rem">Red line = today</span></div>
+    <div id="gantt"></div>
+  </div>
+</div>
+
+<!-- ═══ COMMITS ═══ -->
+<div class="P" id="p-commits">
+  <div class="card">
+    <div class="ct">All Commits <span id="cCnt"></span></div>
+    <div class="log" id="cLog"></div>
+  </div>
+</div>
+
+<div class="ft">
+  Regenerate: <code>python3 scripts/generate_dashboard_data.py</code> then commit <code>docs/dashboard_data.json</code><br>
+  Commit format: <code>git commit -m "message #T01 [2h]"</code> · Deploy via GitHub Pages → docs/ folder
+</div>
+</div>
+
+<!-- ═══ ADD / EDIT TASK MODAL ═══ -->
+<div class="modal-overlay" id="taskModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">New Task</div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+      <div class="mfield"><label>Task ID</label><input id="mTaskId" type="text" placeholder="T31"></div>
+      <div class="mfield"><label>Title</label><input id="mTitle" type="text" placeholder="What needs doing?"></div>
+      <div class="mgrid2">
+        <div class="mfield"><label>Category</label>
+          <select id="mCategory">
+            <option>parser</option><option>lexer</option><option>codegen</option><option>context</option>
+            <option>testing</option><option>bugfix</option><option>control-flow</option><option>float</option>
+            <option>memory</option><option>docs</option><option>refactor</option><option>infra</option><option>other</option>
+          </select></div>
+        <div class="mfield"><label>Week</label>
+          <select id="mWeek"><option value="1">Week 1</option><option value="2">Week 2</option><option value="3">Week 3</option><option value="4">Week 4</option></select></div>
+      </div>
+      <div class="mgrid3">
+        <div class="mfield"><label>Status</label>
+          <select id="mStatus"><option value="todo">todo</option><option value="progress">progress</option><option value="done">done</option><option value="blocked">blocked</option></select></div>
+        <div class="mfield"><label>Planned hrs</label><input id="mPlanned" type="number" step=".5" min="0" value="2"></div>
+        <div class="mfield"><label>Logged hrs</label><input id="mLogged" type="number" step=".25" min="0" value="0"></div>
+      </div>
+      <div class="mfield"><label>Assignee</label><input id="mAssignee" type="text" placeholder="Leave blank = unassigned"></div>
+      <div class="mfield"><label>Depends on (comma-separated)</label><input id="mDepends" type="text" placeholder="T01, T02"></div>
+      <div class="mfield"><label>Notes</label><textarea id="mNotes" rows="3" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="merr" id="modalErr"></div>
+    <div style="display:flex;gap:.5rem;margin-top:1rem;justify-content:flex-end">
+      <button class="btn btn-g" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-d" id="modalDelBtn" style="display:none" onclick="deleteTaskFromModal()">Delete</button>
+      <button class="btn btn-p" onclick="saveTaskFromModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let D;
+const C={blue:'#4db8ff',green:'#6dd674',orange:'#ff9f43',purple:'#b68aff',pink:'#ff6fa8',red:'#ff5757',cyan:'#47d4b2',yellow:'#ffd54f',dim:'#5c7085'};
+const AP=[C.blue,C.green,C.orange,C.purple,C.pink,C.cyan];
+const TC={parser:C.green,codegen:C.orange,lexer:C.blue,context:C.purple,testing:C.cyan,bugfix:C.red,'control-flow':C.yellow,float:C.pink,memory:C.orange,docs:'#8899aa',refactor:'#aa99cc',infra:'#7799bb',other:C.dim};
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+// ── Set this to your API Gateway invoke URL after creating the HTTP API ──────
+const API_BASE='https://6gjfy2a0w8.execute-api.eu-north-1.amazonaws.com';
+
+async function init(){
+  // 1. Load git/commit/stats data from pre-generated JSON
+  try{
+    const r=await fetch('dashboard_data.json');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    D=await r.json();
+  }catch(e){
+    console.warn('dashboard_data.json not available:',e.message);
+    D={_generated:null,config:{deadline:'2026-03-20T15:00:00',project_start:'2026-02-22'},
+      summary:{total_commits:0,authors:[],total_added:0,total_deleted:0,total_time_logged:0},
+      tasks:[],author_stats:{},weekly:{},daily:{},hourly:[],tags:{},test_categories:{},branches:[],commits:[]};
+  }
+  // 2. Load live tasks from DynamoDB via API (overrides stale tasks in dashboard_data.json)
+  await loadTasksFromAPI();
+  setupTabs();renderAll();
+}
+
+async function loadTasksFromAPI(){
+  try{
+    const r=await fetch(API_BASE+'/tasks');
+    if(!r.ok)throw new Error('API HTTP '+r.status);
+    const data=await r.json();
+    // Build a map of commit/git_time data already in D.tasks (from dashboard_data.json)
+    const commitMap={};
+    (D.tasks||[]).forEach(t=>{commitMap[t.id||t.task_id]=t;});
+    D.tasks=(data.tasks||[]).map(t=>{
+      const ex=commitMap[t.task_id]||{};
+      return{...t,id:t.task_id,linked_commits:ex.linked_commits||[],
+        git_time:ex.git_time||0,total_time:(parseFloat(t.logged_hours)||0)+(ex.git_time||0)};
+    });
+    console.log('Loaded',D.tasks.length,'tasks from API');
+  }catch(e){
+    console.error('Failed to load tasks from API:',e.message);
+    // D.tasks remains as whatever came from dashboard_data.json
+  }
+}
+
+function setupTabs(){document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.P').forEach(x=>x.classList.remove('on'));t.classList.add('on');document.getElementById('p-'+t.dataset.p).classList.add('on')}))}
+
+function renderAll(){rMeta();rKPIs();rDaily();rPie();rTests();rAuth();rTasks();rPVA();rTimePie();rTaskComp();rGantt();rLog()}
+
+function rMeta(){
+  const dl=new Date(D.config.deadline),days=Math.max(0,Math.ceil((dl-new Date())/864e5));
+  document.getElementById('meta').innerHTML=`Generated: ${D._generated?new Date(D._generated).toLocaleString('en-GB'):'—'}<br>Deadline in <strong style="color:${days>10?C.green:days>5?C.orange:C.red}">${days} days</strong>`;
+}
+
+function rKPIs(){
+  const s=D.summary,dl=new Date(D.config.deadline),days=Math.max(0,Math.ceil((dl-new Date())/864e5));
+  const tasks=D.tasks||[],done=tasks.filter(t=>t.status==='done').length;
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi b"><div class="kl">Commits</div><div class="kv" style="color:${C.blue}">${s.total_commits}</div><div class="ks">${s.authors.length} contributor${s.authors.length!==1?'s':''}</div></div>
+    <div class="kpi g"><div class="kl">Lines Changed</div><div class="kv" style="color:${C.green}">+${s.total_added.toLocaleString()}</div><div class="ks" style="color:${C.red}">−${s.total_deleted.toLocaleString()}</div></div>
+    <div class="kpi o"><div class="kl">Hours Logged</div><div class="kv" style="color:${C.orange}">${totalHrs().toFixed(1)}h</div><div class="ks">${s.total_time_logged}h git-parsed</div></div>
+    <div class="kpi p"><div class="kl">Tasks Done</div><div class="kv" style="color:${C.purple}">${done}/${tasks.length}</div><div class="ks">${tasks.length?Math.round(done/tasks.length*100):0}% complete</div></div>
+    <div class="kpi ${days>10?'b':days>5?'o':'r'}"><div class="kl">Days Left</div><div class="kv" style="color:${days>10?C.blue:days>5?C.orange:C.red}">${days}</div><div class="ks">${dl.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}, 15:00</div></div>`;
+}
+
+function totalHrs(){return (D.summary.total_time_logged||0)+(D.tasks||[]).reduce((s,t)=>s+(parseFloat(t.logged_hours)||0),0)}
+
+// ─── DAILY CHART ───
+let dCI;
+function rDaily(){
+  const ctx=document.getElementById('cDaily').getContext('2d');
+  if(dCI)dCI.destroy();
+  const L=Object.keys(D.daily),V=Object.values(D.daily);
+  dCI=new Chart(ctx,{type:'bar',data:{labels:L.map(d=>d.slice(5)),datasets:[{data:V,backgroundColor:C.blue+'88',borderColor:C.blue,borderWidth:1,borderRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:C.dim,font:{family:'IBM Plex Mono',size:9}},grid:{color:'#1a2430'}},y:{ticks:{color:C.dim,stepSize:1},grid:{color:'#1a2430'},beginAtZero:true}}}});
+}
+
+// ─── TAG PIE ───
+let pCI;
+function rPie(){
+  const ctx=document.getElementById('cPie').getContext('2d');if(pCI)pCI.destroy();
+  const L=Object.keys(D.tags),V=Object.values(D.tags),cls=L.map(t=>TC[t]||C.dim);
+  if(!L.length){document.getElementById('pieLeg').innerHTML='<span style="color:var(--dim)">No tags yet — use keywords in commits</span>';return}
+  pCI=new Chart(ctx,{type:'doughnut',data:{labels:L,datasets:[{data:V,backgroundColor:cls,borderColor:'#0f1318',borderWidth:2}]},options:{responsive:false,plugins:{legend:{display:false}},cutout:'55%'}});
+  document.getElementById('pieLeg').innerHTML=L.map((l,i)=>`<div class="pli"><div class="pls" style="background:${cls[i]}"></div><span>${l}</span><span style="color:var(--dim);margin-left:auto;font-family:var(--mono);font-size:.7rem">${V[i]}</span></div>`).join('');
+}
+
+// ─── TESTS ───
+function rTests(){
+  const cats=D.test_categories,s=Object.entries(cats).sort((a,b)=>b[1]-a[1]),mx=Math.max(...s.map(([,v])=>v),1);
+  document.getElementById('testBars').innerHTML=s.map(([c,n])=>`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><div style="font-family:var(--mono);font-size:.7rem;color:var(--dim);width:75px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis">${c}</div><div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${n/mx*100}%;background:${C.cyan};border-radius:3px"></div></div><div style="font-family:var(--mono);font-size:.66rem;color:var(--dim);width:22px">${n}</div></div>`).join('');
+}
+
+// ─── AUTHORS ───
+function rAuth(){
+  const el=document.getElementById('authCards');
+  el.innerHTML=Object.entries(D.author_stats).map(([n,s],i)=>{const c=AP[i%AP.length];return`<div style="margin-bottom:.7rem"><div style="font-weight:700;font-size:.9rem;color:${c};margin-bottom:.3rem">${n}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:.15rem .8rem;font-size:.78rem">${[['Commits',s.commits],['Added',`<span style="color:${C.green}">+${s.added.toLocaleString()}</span>`],['Deleted',`<span style="color:${C.red}">−${s.deleted.toLocaleString()}</span>`],['Git time',s.time_logged+'h'],['Active days',s.active_days]].map(([l,v])=>`<div style="color:var(--dim)">${l}</div><div style="font-family:var(--mono);text-align:right">${v}</div>`).join('')}</div></div>`}).join('');
+}
+
+// ─── TASK BOARD ───
+function rTasks(){
+  const tasks=D.tasks||[];
+  const done=tasks.filter(t=>t.status==='done').length,prog=tasks.filter(t=>t.status==='progress').length,todo=tasks.filter(t=>t.status==='todo'||!t.status).length;
+  document.getElementById('taskStats').innerHTML=`
+    <div class="card" style="text-align:center"><div class="kl">To Do</div><div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--dim)">${todo}</div></div>
+    <div class="card" style="text-align:center"><div class="kl">In Progress</div><div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:${C.blue}">${prog}</div></div>
+    <div class="card" style="text-align:center"><div class="kl">Done</div><div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:${C.green}">${done}</div></div>`;
+
+  document.getElementById('taskList').innerHTML=tasks.map((t,i)=>{
+    const isMilestone=t.title.startsWith('★');
+    const catCol=TC[t.category]||C.dim;
+    const st=t.status||'todo';
+    const actual=t.total_time||0;
+    const commits=t.linked_commits||[];
+    const totalT=actual;
+    const pctBar=t.planned_hours?Math.min(100,Math.round(totalT/t.planned_hours*100)):0;
+    const overCol=totalT>t.planned_hours?C.orange:C.green;
+
+    return`<div class="task${isMilestone?' milestone':''}" id="tr-${i}">
+      <div class="tid">${t.id}</div>
+      <div class="tname" title="${esc(t.title)}">${esc(t.title)}</div>
+      <div><div class="tcat" style="background:${catCol}18;color:${catCol}">${t.category}</div></div>
+      <div><div class="tstat ${st}" onclick="quickUpdateStatus('${t.id}','${st}')" title="Click to cycle status" style="cursor:pointer">${st}</div></div>
+      <div class="twk">W${t.week}</div>
+      <div class="thrs"><span style="color:var(--dim)">${t.planned_hours}h</span> / <span style="color:${overCol}">${totalT.toFixed(1)}h</span></div>
+      <div class="tcmt">${commits.length||'—'}</div>
+      <div class="texp" onclick="toggleDetail(${i})">▸</div>
+    </div>
+    <div class="tdetail" id="td-${i}">
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;align-items:center">
+        <div><label>Assignee:</label> <span style="font-family:var(--mono);font-size:.8rem">${t.assignee||'Unassigned'}</span></div>
+        <div><label>Depends on:</label> <span style="font-family:var(--mono);font-size:.8rem">${(t.depends_on||[]).join(', ')||'—'}</span></div>
+        <button class="btn btn-g" onclick="showEditTaskModal('${t.id}')" style="margin-left:auto">Edit Task</button>
+      </div>
+      ${t.notes?`<div style="font-size:.8rem;color:var(--dim);margin-bottom:.5rem">${esc(t.notes)}</div>`:''}
+      <div style="margin-bottom:.5rem">
+        <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pctBar}%;background:${overCol};border-radius:3px"></div></div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:.15rem">${pctBar}% of planned hours</div>
+      </div>
+      ${commits.length?`<label>Linked Commits (from #${t.id} in messages):</label>${commits.map(c=>`<div class="linked-commit"><span class="h">${c.hash}</span><span class="msg">${esc(c.subject)}</span>${c.time?`<span class="t">${c.time}h</span>`:''}<span style="font-size:.65rem;color:var(--dim)">${c.author}</span></div>`).join('')}`:'<div style="font-size:.78rem;color:var(--dim);margin-bottom:.3rem">No linked commits — add <code style="font-family:var(--mono);background:var(--s3);padding:.05rem .25rem;border-radius:3px;color:var(--tx)">#${t.id}</code> to a commit message</div>'}
+      <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
+        <div><label>Add hours:</label><input type="number" id="mt-h-${i}" step=".25" min="0" value="1" style="width:55px"></div>
+        <button class="btn btn-p" onclick="logManual('${t.id}',${i})">+ Log</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDetail(i){document.getElementById('td-'+i).classList.toggle('open');const exp=document.querySelector('#tr-'+i+' .texp');if(exp)exp.textContent=document.getElementById('td-'+i).classList.contains('open')?'▾':'▸'}
+
+async function logManual(tid,i){
+  const h=parseFloat(document.getElementById('mt-h-'+i).value)||0;
+  if(h<=0)return;
+  const task=(D.tasks||[]).find(t=>t.id===tid||t.task_id===tid);
+  if(!task)return;
+  const newLogged=(parseFloat(task.logged_hours)||0)+h;
+  try{
+    const r=await fetch(`${API_BASE}/tasks/${encodeURIComponent(tid)}`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({logged_hours:newLogged})
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    await loadTasksFromAPI();renderAll();
+  }catch(e){console.error('Log time failed:',e);}
+}
+
+// ─── MODAL FUNCTIONS ───
+let _modalMode='add',_modalTaskId=null;
+
+function showAddTaskModal(){
+  _modalMode='add';_modalTaskId=null;
+  document.getElementById('modalTitle').textContent='New Task';
+  document.getElementById('mTaskId').value='';
+  document.getElementById('mTaskId').disabled=false;
+  ['mTitle','mAssignee','mDepends','mNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mCategory').value='codegen';
+  document.getElementById('mWeek').value='1';
+  document.getElementById('mStatus').value='todo';
+  document.getElementById('mPlanned').value='2';
+  document.getElementById('mLogged').value='0';
+  document.getElementById('modalErr').style.display='none';
+  document.getElementById('modalDelBtn').style.display='none';
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function showEditTaskModal(taskId){
+  const t=(D.tasks||[]).find(x=>x.id===taskId||x.task_id===taskId);
+  if(!t)return;
+  _modalMode='edit';_modalTaskId=taskId;
+  document.getElementById('modalTitle').textContent='Edit '+taskId;
+  document.getElementById('mTaskId').value=taskId;
+  document.getElementById('mTaskId').disabled=true;
+  document.getElementById('mTitle').value=t.title||'';
+  document.getElementById('mCategory').value=t.category||'other';
+  document.getElementById('mWeek').value=String(t.week||1);
+  document.getElementById('mStatus').value=t.status||'todo';
+  document.getElementById('mPlanned').value=t.planned_hours||0;
+  document.getElementById('mLogged').value=t.logged_hours||0;
+  document.getElementById('mAssignee').value=t.assignee||'';
+  document.getElementById('mDepends').value=(t.depends_on||[]).join(', ');
+  document.getElementById('mNotes').value=t.notes||'';
+  document.getElementById('modalErr').style.display='none';
+  document.getElementById('modalDelBtn').style.display='inline-flex';
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('taskModal').classList.remove('open');}
+
+async function saveTaskFromModal(){
+  const errEl=document.getElementById('modalErr');
+  errEl.style.display='none';
+  const payload={
+    title:       document.getElementById('mTitle').value.trim(),
+    category:    document.getElementById('mCategory').value,
+    week:        parseInt(document.getElementById('mWeek').value),
+    status:      document.getElementById('mStatus').value,
+    planned_hours:parseFloat(document.getElementById('mPlanned').value)||0,
+    logged_hours: parseFloat(document.getElementById('mLogged').value)||0,
+    assignee:    document.getElementById('mAssignee').value.trim()||null,
+    depends_on:  document.getElementById('mDepends').value.split(',').map(s=>s.trim()).filter(Boolean),
+    notes:       document.getElementById('mNotes').value.trim(),
+  };
+  if(!payload.title){errEl.textContent='Title is required';errEl.style.display='block';return;}
+  try{
+    let url,method;
+    if(_modalMode==='add'){
+      const tid=document.getElementById('mTaskId').value.trim().toUpperCase();
+      if(!tid){errEl.textContent='Task ID is required';errEl.style.display='block';return;}
+      payload.task_id=tid;url=`${API_BASE}/tasks`;method='POST';
+    }else{
+      url=`${API_BASE}/tasks/${encodeURIComponent(_modalTaskId)}`;method='PATCH';
+    }
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||'HTTP '+r.status);}
+    closeModal();
+    await loadTasksFromAPI();
+    rTasks();rKPIs();rPVA();rTimePie();rTaskComp();rGantt();
+  }catch(e){errEl.textContent='Error: '+e.message;errEl.style.display='block';}
+}
+
+async function deleteTaskFromModal(){
+  if(!_modalTaskId)return;
+  if(!confirm(`Delete task ${_modalTaskId}? This cannot be undone.`))return;
+  try{
+    const r=await fetch(`${API_BASE}/tasks/${encodeURIComponent(_modalTaskId)}`,{method:'DELETE'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    closeModal();await loadTasksFromAPI();
+    rTasks();rKPIs();rPVA();rTimePie();rTaskComp();rGantt();
+  }catch(e){
+    document.getElementById('modalErr').textContent='Delete failed: '+e.message;
+    document.getElementById('modalErr').style.display='block';
+  }
+}
+
+async function quickUpdateStatus(taskId,currentStatus){
+  const cycle={todo:'progress',progress:'done',done:'todo',blocked:'todo'};
+  const newStatus=cycle[currentStatus]||'todo';
+  try{
+    const r=await fetch(`${API_BASE}/tasks/${encodeURIComponent(taskId)}`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({status:newStatus})
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    await loadTasksFromAPI();rTasks();rKPIs();rPVA();rTaskComp();
+  }catch(e){console.error('Status update failed:',e);}
+}
+
+// ─── PVA ───
+function rPVA(){
+  const tasks=D.tasks||[],nAuth=Math.max(D.summary.authors.length,1);
+  let html='',tPl=0,tAc=0;
+  for(let w=1;w<=4;w++){
+    const wTasks=tasks.filter(t=>t.week===w);
+    const planned=wTasks.reduce((s,t)=>s+(t.planned_hours||0),0);
+    const actual=wTasks.reduce((s,t)=>s+(t.total_time||0),0);
+    tPl+=planned;tAc+=actual;
+    const mx=Math.max(planned,actual,1);const diff=actual-planned;
+    const ds=actual>0?(diff>=0?`+${diff.toFixed(1)}h`:`${diff.toFixed(1)}h`):'—';
+    const dc=Math.abs(diff)<2?C.green:diff>0?C.orange:C.red;
+    html+=`<div class="pva"><div class="pva-h"><span>Week ${w}</span><span style="font-family:var(--mono);font-size:.73rem;color:${dc}">${ds}</span></div><div class="pva-b"><div class="pva-t">Planned</div><div class="pva-tr"><div class="pva-f" style="width:${planned/mx*100}%;background:${C.blue}55;border:1px solid ${C.blue}"></div></div><div class="pva-v" style="color:${C.blue}">${planned}h</div></div><div class="pva-b"><div class="pva-t">Actual</div><div class="pva-tr"><div class="pva-f" style="width:${actual/mx*100}%;background:${C.green}"></div></div><div class="pva-v" style="color:${C.green}">${actual.toFixed(1)}h</div></div></div>`;
+  }
+  html+=`<div style="border-top:1px solid var(--bd);padding-top:.4rem;margin-top:.2rem;display:flex;justify-content:space-between;font-family:var(--mono);font-size:.8rem"><span>Total</span><span>Planned: <b style="color:${C.blue}">${tPl}h</b> · Actual: <b style="color:${C.green}">${tAc.toFixed(1)}h</b></span></div>`;
+  document.getElementById('pvaCard').innerHTML=html;
+}
+
+// ─── TIME PIE ───
+let tPI;
+function rTimePie(){
+  const catTime={};
+  (D.tasks||[]).forEach(t=>{if(t.total_time>0)catTime[t.category]=(catTime[t.category]||0)+t.total_time});
+  const s=Object.entries(catTime).sort((a,b)=>b[1]-a[1]);
+  const L=s.map(([k])=>k),V=s.map(([,v])=>Math.round(v*10)/10),cls=L.map(l=>TC[l]||C.dim);
+  const ctx=document.getElementById('cTimePie').getContext('2d');if(tPI)tPI.destroy();
+  if(!L.length){document.getElementById('timePieLeg').innerHTML='<span style="color:var(--dim)">No time logged yet</span>';return}
+  tPI=new Chart(ctx,{type:'doughnut',data:{labels:L,datasets:[{data:V,backgroundColor:cls,borderColor:'#0f1318',borderWidth:2}]},options:{responsive:false,plugins:{legend:{display:false}},cutout:'55%'}});
+  document.getElementById('timePieLeg').innerHTML=L.map((l,i)=>`<div class="pli"><div class="pls" style="background:${cls[i]}"></div><span>${l}</span><span style="color:var(--dim);margin-left:auto;font-family:var(--mono);font-size:.7rem">${V[i]}h</span></div>`).join('');
+}
+
+// ─── TASK COMPLETION BARS ───
+function rTaskComp(){
+  const tasks=D.tasks||[];
+  const cats={};tasks.forEach(t=>{if(!cats[t.category])cats[t.category]={total:0,done:0};cats[t.category].total++;if(t.status==='done')cats[t.category].done++});
+  document.getElementById('taskCompBars').innerHTML=Object.entries(cats).sort((a,b)=>b[1].total-a[1].total).map(([cat,d])=>{
+    const pct=d.total?Math.round(d.done/d.total*100):0;const col=TC[cat]||C.dim;
+    return`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><div style="font-family:var(--mono);font-size:.7rem;color:var(--dim);width:70px;text-align:right;flex-shrink:0">${cat}</div><div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${col};border-radius:3px"></div></div><div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);width:52px">${d.done}/${d.total}</div></div>`;
+  }).join('')||'<span style="color:var(--dim)">No tasks</span>';
+}
+
+// ─── GANTT ───
+function rGantt(){
+  const tasks=D.tasks||[];if(!tasks.length){document.getElementById('gantt').innerHTML='<span style="color:var(--dim)">No tasks</span>';return}
+  const ps=new Date(D.config.project_start+'T00:00:00'),pe=new Date(D.config.deadline);
+  const totalDays=(pe-ps)/864e5;
+  const now=new Date(),todayPct=Math.min(100,Math.max(0,(now-ps)/(pe-ps)*100));
+  const barCols=[C.blue,C.green,C.orange,C.purple,C.pink,C.cyan,C.yellow,C.red,C.cyan];
+  // Day headers
+  let h='<div style="display:flex;margin-left:140px;margin-bottom:.2rem">';
+  for(let i=0;i<totalDays;i++){const d=new Date(ps.getTime()+i*864e5);const mon=d.getDay()===1;h+=`<div style="flex:1;font-family:var(--mono);font-size:.52rem;color:${mon?C.blue:'var(--dim)'};text-align:center;${mon?'font-weight:600;':''}">${d.getDate()}</div>`}
+  h+='</div>';
+  // Week separators
+  const weekStarts=[0,7,14,21].map(d=>d/totalDays*100);
+  // Task rows
+  tasks.forEach((t,i)=>{
+    const wStart=(t.week-1)*7,wEnd=Math.min(t.week*7,totalDays);
+    const leftPct=wStart/totalDays*100,widthPct=(wEnd-wStart)/totalDays*100;
+    const totalT=t.total_time||0;
+    const pct=t.planned_hours?Math.min(100,Math.round(totalT/t.planned_hours*100)):0;
+    const col=barCols[i%barCols.length];
+    const isMilestone=t.title.startsWith('★');
+    h+=`<div class="gantt-row">
+      <div class="gantt-lbl" style="color:${isMilestone?C.purple:col}" title="${esc(t.id+': '+t.title)}">${t.id} ${esc(t.title)}</div>
+      <div class="gantt-track" style="position:relative">
+        <div style="position:absolute;left:${leftPct}%;width:${widthPct}%;height:100%;background:${col}15;border:1px solid ${col}30;border-radius:4px"></div>
+        <div class="gantt-bar" style="left:${leftPct}%;width:${widthPct*pct/100}%;background:${col};${isMilestone?'border:2px solid '+C.purple+';':''}"><span style="opacity:.9">${pct>8?pct+'%':''}</span></div>
+        ${todayPct>0&&todayPct<100?`<div class="gantt-today" style="left:${todayPct}%"></div>`:''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('gantt').innerHTML=h;
+}
+
+// ─── COMMIT LOG ───
+function rLog(){
+  document.getElementById('cCnt').textContent=`(${D.commits.length})`;
+  document.getElementById('cLog').innerHTML=D.commits.map(c=>{
+    const tStr=c.time_logged?c.time_logged+'h':'—';const tCls=c.time_logged?'y':'n';
+    return`<div class="log-r"><div class="log-h">${c.hash}</div><div><div class="log-m">${esc(c.subject)}</div><div class="log-tags">${c.task_ids.map(t=>`<span class="log-tid">${t}</span>`).join('')}${c.tags.map(t=>`<span class="log-tg" style="color:${TC[t]||'var(--dim)'}">${t}</span>`).join('')}</div></div><div class="log-tm ${tCls}">${tStr}</div><div class="log-a">${c.author}<br>${c.date}</div></div>`;
+  }).join('')||'<div style="padding:1rem;color:var(--dim)">No commits</div>';
+}
+
+init();
+</script>
+</body>
+</html>
