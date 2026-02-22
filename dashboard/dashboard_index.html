@@ -259,11 +259,12 @@ canvas{width:100%!important}
       <div class="mfield"><label>Title</label><input id="mTitle" type="text" placeholder="What needs doing?"></div>
       <div class="mgrid2">
         <div class="mfield"><label>Category</label>
-          <select id="mCategory">
+          <input id="mCategory" list="catList" placeholder="codegen" style="font-family:var(--mono);font-size:.78rem;padding:.35rem .5rem;background:var(--s2);border:1px solid var(--bd);border-radius:5px;color:var(--tx);outline:none;width:100%">
+          <datalist id="catList">
             <option>parser</option><option>lexer</option><option>codegen</option><option>context</option>
             <option>testing</option><option>bugfix</option><option>control-flow</option><option>float</option>
             <option>memory</option><option>docs</option><option>refactor</option><option>infra</option><option>other</option>
-          </select></div>
+          </datalist></div>
         <div class="mfield"><label>Week</label>
           <select id="mWeek"><option value="1">Week 1</option><option value="2">Week 2</option><option value="3">Week 3</option><option value="4">Week 4</option></select></div>
       </div>
