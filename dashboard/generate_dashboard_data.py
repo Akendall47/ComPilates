@@ -26,7 +26,7 @@ from pathlib import Path
 
 OUTPUT = "docs/dashboard_data.json"
 DEADLINE = "2026-03-20T15:00:00"
-PROJECT_START = "2026-02-22"
+PROJECT_START = "2026-02-23T10:00:00"
 
 DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE", "compilates-tasks")
 DYNAMODB_PROJECT = os.environ.get("PROJECT_ID", "compilates-2025")
@@ -83,8 +83,10 @@ def get_commits():
         parts = line.split(SEP, 4)
         if len(parts) < 5: continue
         h, author, email, ts, subject = parts
+        if author == "Dashboard Bot": continue
         dt = datetime.fromisoformat(ts)
-        ps = datetime.fromisoformat(PROJECT_START + "T00:00:00").replace(tzinfo=dt.tzinfo)
+        ps = datetime.fromisoformat(PROJECT_START).replace(tzinfo=dt.tzinfo)
+        if dt < ps: continue
         week = max(1, min(4, (dt - ps).days // 7 + 1))
         commits.append({
             "hash": h[:8], "hash_full": h, "author": author,
