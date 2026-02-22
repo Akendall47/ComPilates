@@ -167,7 +167,7 @@ canvas{width:100%!important}
 <!-- ═══ GANTT ═══ -->
 <div class="P" id="p-gantt">
   <div class="card">
-    <div class="ct">Task Gantt — Weeks 1 to 4 <span style="font-weight:400;text-transform:none;font-size:.62rem">Red line = today</span></div>
+    <div class="ct">Task Gantt — Day by Day <span style="font-weight:400;text-transform:none;font-size:.62rem">Mondays bold · Red line = today · Bar fill = % of planned hours logged</span></div>
     <div id="gantt"></div>
   </div>
 </div>
@@ -600,16 +600,31 @@ function rTaskComp(){
 // ─── GANTT ───
 function rGantt(){
   const tasks=D.tasks||[];if(!tasks.length){document.getElementById('gantt').innerHTML='<span style="color:var(--dim)">No tasks</span>';return}
-  const ps=new Date(D.config.project_start+'T00:00:00'),pe=new Date(D.config.deadline);
-  const totalDays=(pe-ps)/864e5;
+  const psStr=D.config.project_start.length>10?D.config.project_start:D.config.project_start+'T00:00:00';
+  const ps=new Date(psStr),pe=new Date(D.config.deadline);
+  const totalDays=Math.ceil((pe-ps)/864e5);
   const now=new Date(),todayPct=Math.min(100,Math.max(0,(now-ps)/(pe-ps)*100));
   const barCols=[C.blue,C.green,C.orange,C.purple,C.pink,C.cyan,C.yellow,C.red,C.cyan];
-  // Day headers
-  let h='<div style="display:flex;margin-left:140px;margin-bottom:.2rem">';
-  for(let i=0;i<totalDays;i++){const d=new Date(ps.getTime()+i*864e5);const mon=d.getDay()===1;h+=`<div style="flex:1;font-family:var(--mono);font-size:.52rem;color:${mon?C.blue:'var(--dim)'};text-align:center;${mon?'font-weight:600;':''}">${d.getDate()}</div>`}
+  const LBLW=150;
+  // Week label row
+  let h=`<div style="display:flex;margin-left:${LBLW}px;margin-bottom:.1rem">`;
+  for(let w=0;w<4;w++){
+    const wPct=7/totalDays*100;
+    h+=`<div style="flex:${wPct};font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--blue);text-align:center;border-left:1px solid var(--bd);padding-left:.2rem">Wk${w+1}</div>`;
+  }
+  // remaining days after week 4
+  const extraDays=totalDays-28;
+  if(extraDays>0)h+=`<div style="flex:${extraDays/totalDays*100}"></div>`;
   h+='</div>';
-  // Week separators
-  const weekStarts=[0,7,14,21].map(d=>d/totalDays*100);
+  // Day number row
+  h+=`<div style="display:flex;margin-left:${LBLW}px;margin-bottom:.3rem">`;
+  for(let i=0;i<totalDays;i++){
+    const d=new Date(ps.getTime()+i*864e5);
+    const isMon=d.getDay()===1,isSun=d.getDay()===0;
+    const col=isMon?C.blue:isSun?C.dim:'var(--dim)';
+    h+=`<div style="flex:1;font-family:var(--mono);font-size:.5rem;color:${col};text-align:center;${isMon?'font-weight:700;':'opacity:.5;'}">${d.getDate()}</div>`;
+  }
+  h+='</div>';
   // Task rows
   tasks.forEach((t,i)=>{
     const wStart=(t.week-1)*7,wEnd=Math.min(t.week*7,totalDays);
@@ -618,12 +633,16 @@ function rGantt(){
     const pct=t.planned_hours?Math.min(100,Math.round(totalT/t.planned_hours*100)):0;
     const col=barCols[i%barCols.length];
     const isMilestone=t.title.startsWith('★');
+    // Week separator lines
+    let seps='';
+    for(let w=1;w<4;w++)seps+=`<div style="position:absolute;left:${w*7/totalDays*100}%;top:0;bottom:0;width:1px;background:var(--bd);z-index:1"></div>`;
     h+=`<div class="gantt-row">
-      <div class="gantt-lbl" style="color:${isMilestone?C.purple:col}" title="${esc(t.id+': '+t.title)}">${t.id} ${esc(t.title)}</div>
+      <div class="gantt-lbl" style="width:${LBLW}px;color:${isMilestone?C.purple:col}" title="${esc(t.id+': '+t.title)}">${t.id} ${esc(t.title)}</div>
       <div class="gantt-track" style="position:relative">
-        <div style="position:absolute;left:${leftPct}%;width:${widthPct}%;height:100%;background:${col}15;border:1px solid ${col}30;border-radius:4px"></div>
-        <div class="gantt-bar" style="left:${leftPct}%;width:${widthPct*pct/100}%;background:${col};${isMilestone?'border:2px solid '+C.purple+';':''}"><span style="opacity:.9">${pct>8?pct+'%':''}</span></div>
-        ${todayPct>0&&todayPct<100?`<div class="gantt-today" style="left:${todayPct}%"></div>`:''}
+        ${seps}
+        <div style="position:absolute;left:${leftPct}%;width:${widthPct}%;height:100%;background:${col}15;border:1px solid ${col}30;border-radius:4px;z-index:2"></div>
+        <div class="gantt-bar" style="left:${leftPct}%;width:${widthPct*pct/100}%;background:${col};z-index:3;${isMilestone?'border:2px solid '+C.purple+';':''}"><span style="opacity:.9">${pct>8?pct+'%':''}</span></div>
+        ${todayPct>0&&todayPct<100?`<div class="gantt-today" style="left:${todayPct}%;z-index:4"></div>`:''}
       </div>
     </div>`;
   });
