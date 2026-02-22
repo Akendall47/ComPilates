@@ -26,7 +26,7 @@ from pathlib import Path
 
 OUTPUT = "docs/dashboard_data.json"
 DEADLINE = "2026-03-20T15:00:00"
-PROJECT_START = "2026-02-23T10:00:00"
+PROJECT_START = "2026-02-22T21:31:00"
 
 DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE", "compilates-tasks")
 DYNAMODB_PROJECT = os.environ.get("PROJECT_ID", "compilates-2025")
