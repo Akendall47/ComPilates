@@ -29,7 +29,9 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sans);line-height:1.
 .ct{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);font-weight:600;margin-bottom:.7rem;display:flex;justify-content:space-between;align-items:center}
 canvas{width:100%!important}
 /* Task board */
-.task{display:grid;grid-template-columns:50px 1fr 70px 60px 50px 80px 70px 30px;gap:.4rem;padding:.5rem .6rem;border-bottom:1px solid rgba(36,48,64,.4);font-size:.8rem;align-items:center;transition:background .1s}
+.filter-btn{font-family:var(--mono);font-size:.65rem;font-weight:600;padding:.2rem .55rem;border-radius:5px;border:1px solid var(--bd);background:var(--s2);color:var(--dim);cursor:pointer;transition:.15s}
+.filter-btn:hover{color:var(--tx);border-color:var(--blue)}.filter-btn.on{color:var(--blue);border-color:var(--blue);background:rgba(77,184,255,.1)}
+.task{display:grid;grid-template-columns:50px 1fr 70px 60px 50px 80px 80px 30px;gap:.4rem;padding:.5rem .6rem;border-bottom:1px solid rgba(36,48,64,.4);font-size:.8rem;align-items:center;transition:background .1s}
 .task:hover{background:var(--s2)}.task.hdr{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
 .task.hdr:hover{background:transparent}
 .task.milestone{background:rgba(182,138,255,.04);border-left:3px solid var(--purple)}
@@ -171,8 +173,18 @@ canvas{width:100%!important}
     <button class="btn btn-p" onclick="showAddTaskModal()" style="white-space:nowrap;flex-shrink:0">+ New Task</button>
   </div>
   <div class="row r3" id="taskStats"></div>
+  <!-- Filter bar -->
+  <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem">
+    <div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-right:.2rem">Filter:</div>
+    <div id="catFilters" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
+    <div style="width:1px;height:18px;background:var(--bd);margin:0 .3rem"></div>
+    <button class="filter-btn on" data-assignee="all" onclick="setAssigneeFilter('all')">All</button>
+    <button class="filter-btn" data-assignee="Archie" onclick="setAssigneeFilter('Archie')">Archie</button>
+    <button class="filter-btn" data-assignee="SAMOS-76" onclick="setAssigneeFilter('SAMOS-76')">SAMOS</button>
+    <button class="filter-btn" data-assignee="unassigned" onclick="setAssigneeFilter('unassigned')">Unassigned</button>
+  </div>
   <div class="card" style="padding:.6rem">
-    <div class="task hdr"><div>ID</div><div>Task</div><div>Category</div><div>Status</div><div>Wk</div><div>Plan / Actual</div><div>Commits</div><div></div></div>
+    <div class="task hdr"><div>ID</div><div>Task</div><div>Category</div><div>Status</div><div>Wk</div><div>Plan / Actual</div><div>Assignee</div><div></div></div>
     <div id="taskList"></div>
   </div>
 </div>
@@ -194,8 +206,14 @@ canvas{width:100%!important}
 
 <!-- ═══ GANTT ═══ -->
 <div class="P" id="p-gantt">
+  <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.6rem;flex-wrap:wrap">
+    <div style="font-family:var(--mono);font-size:.65rem;color:var(--dim)">View:</div>
+    <button class="filter-btn on" id="gv-project" onclick="setGanttView('project')">Project</button>
+    <button class="filter-btn" id="gv-Archie" onclick="setGanttView('Archie')">Archie</button>
+    <button class="filter-btn" id="gv-SAMOS-76" onclick="setGanttView('SAMOS-76')">SAMOS</button>
+  </div>
   <div class="card">
-    <div class="ct">Task Gantt — Day by Day <span style="font-weight:400;text-transform:none;font-size:.62rem">Mondays bold · Red line = today · Bar fill = % of planned hours logged</span></div>
+    <div class="ct" id="ganttTitle">Task Gantt — Day by Day <span style="font-weight:400;text-transform:none;font-size:.62rem">Mondays bold · Red line = today · Bar fill = % of planned hours logged</span></div>
     <div id="gantt"></div>
   </div>
 </div>
@@ -340,7 +358,13 @@ canvas{width:100%!important}
         <div class="mfield"><label>Planned hrs</label><input id="mPlanned" type="number" step=".5" min="0" value="2"></div>
         <div class="mfield"><label>Logged hrs</label><input id="mLogged" type="number" step=".25" min="0" value="0"></div>
       </div>
-      <div class="mfield"><label>Assignee</label><input id="mAssignee" type="text" placeholder="Leave blank = unassigned"></div>
+      <div class="mfield"><label>Assignee</label>
+        <select id="mAssignee">
+          <option value="">Unassigned</option>
+          <option value="Archie">Archie</option>
+          <option value="SAMOS-76">SAMOS-76</option>
+          <option value="Both">Both</option>
+        </select></div>
       <div class="mfield"><label>Depends on (comma-separated)</label><input id="mDepends" type="text" placeholder="T01, T02"></div>
       <div class="mfield"><label>Notes</label><textarea id="mNotes" rows="3" style="resize:vertical"></textarea></div>
       <div class="mfield"><label>Branch (manual override)</label><input id="mBranch" type="text" placeholder="feature/T01-parser (leave blank for auto-detect)"></div>
@@ -546,9 +570,35 @@ function rAuth(){
 }
 
 // ─── TASK BOARD ───
-function rTasks(){
+let _catFilter='all',_assigneeFilter='all';
+
+function buildCatFilters(){
   const tasks=D.tasks||[];
-  const done=tasks.filter(t=>t.status==='done').length,prog=tasks.filter(t=>t.status==='progress').length,todo=tasks.filter(t=>t.status==='todo'||!t.status).length;
+  const cats=new Set(tasks.map(t=>t.category).filter(Boolean));
+  const all=['all',...Array.from(cats).sort()];
+  document.getElementById('catFilters').innerHTML=all.map(c=>`<button class="filter-btn${_catFilter===c?' on':''}" data-cat="${c}" onclick="setCatFilter('${c}')">${c==='all'?'All cats':c}</button>`).join('');
+}
+
+function setCatFilter(cat){_catFilter=cat;document.querySelectorAll('[data-cat]').forEach(b=>b.classList.toggle('on',b.dataset.cat===cat));rTasks();}
+function setAssigneeFilter(a){_assigneeFilter=a;document.querySelectorAll('[data-assignee]').forEach(b=>b.classList.toggle('on',b.dataset.assignee===a));rTasks();}
+
+function assigneeColor(a){if(a==='Archie')return C.blue;if(a==='SAMOS-76'||a==='SAMOS')return C.purple;return C.dim;}
+
+function rTasks(){
+  const allTasks=D.tasks||[];
+  buildCatFilters();
+
+  // apply filters
+  const tasks=allTasks.filter(t=>{
+    const catOk=_catFilter==='all'||t.category===_catFilter;
+    const a=t.assignee||'';
+    const assigneeOk=_assigneeFilter==='all'
+      ||((_assigneeFilter==='unassigned')&&!a)
+      ||(a===_assigneeFilter);
+    return catOk&&assigneeOk;
+  });
+
+  const done=allTasks.filter(t=>t.status==='done').length,prog=allTasks.filter(t=>t.status==='progress').length,todo=allTasks.filter(t=>t.status==='todo'||!t.status).length;
   document.getElementById('taskStats').innerHTML=`
     <div class="card" style="text-align:center"><div class="kl">To Do</div><div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--dim)">${todo}</div></div>
     <div class="card" style="text-align:center"><div class="kl">In Progress</div><div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:${C.blue}">${prog}</div></div>
@@ -570,6 +620,10 @@ function rTasks(){
       ?'<div style="margin-bottom:.4rem"><label>Branches:</label><div style="display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.2rem">'+branches.map(function(b){return'<span class="branch-chip '+b.status+'" title="'+esc(b.name)+'">&#8983; '+esc(b.name)+' <span style="opacity:.55;font-size:.55rem">'+b.status+'</span></span>';}).join('')+'</div></div>'
       :'<div style="font-size:.78rem;color:var(--dim);margin-bottom:.4rem">No branch linked \u2014 name a branch <code style="font-family:var(--mono);background:var(--s3);padding:.05rem .2rem;border-radius:3px;color:var(--tx)">feature/'+esc(t.id)+'-name</code> or set one in Edit Task</div>';
 
+    const assigneeDisp=t.assignee
+      ?`<span style="font-family:var(--mono);font-size:.65rem;font-weight:600;color:${assigneeColor(t.assignee)}">${esc(t.assignee)}</span>`
+      :`<span style="font-family:var(--mono);font-size:.65rem;color:var(--dim)">—</span>`;
+
     return`<div class="task${isMilestone?' milestone':''}" id="tr-${i}">
       <div class="tid">${t.id}</div>
       <div class="tname" title="${esc(t.title)}">${esc(t.title)}${topBranchHtml}</div>
@@ -577,12 +631,13 @@ function rTasks(){
       <div><div class="tstat ${st}" onclick="quickUpdateStatus('${t.id}','${st}')" title="Click to cycle status" style="cursor:pointer">${st}</div></div>
       <div class="twk">W${t.week}</div>
       <div class="thrs"><span style="color:var(--dim)">${t.planned_hours}h</span> / <span style="color:${overCol}">${totalT.toFixed(1)}h</span></div>
-      <div class="tcmt">${commits.length||'—'}</div>
+      <div>${assigneeDisp}</div>
       <div class="texp" onclick="toggleDetail(${i})">▸</div>
     </div>
     <div class="tdetail" id="td-${i}">
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;align-items:center">
-        <div><label>Assignee:</label> <span style="font-family:var(--mono);font-size:.8rem">${t.assignee||'Unassigned'}</span></div>
+        <div><label>Assignee:</label> <span style="font-family:var(--mono);font-size:.8rem;color:${assigneeColor(t.assignee)}">${t.assignee||'Unassigned'}</span></div>
+        <div><label>Commits:</label> <span style="font-family:var(--mono);font-size:.8rem">${commits.length||'—'}</span></div>
         <div><label>Depends on:</label> <span style="font-family:var(--mono);font-size:.8rem">${(t.depends_on||[]).join(', ')||'—'}</span></div>
         <button class="btn btn-g" onclick="showEditTaskModal('${t.id}')" style="margin-left:auto">Edit Task</button>
       </div>
@@ -764,42 +819,80 @@ function rTaskComp(){
 }
 
 // ─── GANTT ───
+let _ganttView='project';
+
+function setGanttView(v){
+  _ganttView=v;
+  ['project','Archie','SAMOS-76'].forEach(k=>document.getElementById('gv-'+k)&&document.getElementById('gv-'+k).classList.toggle('on',k===v));
+  rGantt();
+}
+
 function rGantt(){
-  const tasks=D.tasks||[];if(!tasks.length){document.getElementById('gantt').innerHTML='<span style="color:var(--dim)">No tasks</span>';return}
+  let tasks=D.tasks||[];
+  if(!tasks.length){document.getElementById('gantt').innerHTML='<span style="color:var(--dim)">No tasks</span>';return}
+
+  // For personal views filter to assignee-relevant tasks
+  if(_ganttView!=='project'){
+    tasks=tasks.filter(t=>t.assignee===_ganttView||t.assignee==='Both'||!t.assignee);
+  }
+
+  // Title
+  const titleEl=document.getElementById('ganttTitle');
+  const viewLabel=_ganttView==='project'?'Project Gantt':_ganttView+"'s Gantt";
+  titleEl.innerHTML=`${viewLabel} — Day by Day <span style="font-weight:400;text-transform:none;font-size:.62rem">Mondays bold · Red line = today · Bar fill = % of planned hours logged</span>`;
+
   const psStr=D.config.project_start.length>10?D.config.project_start:D.config.project_start+'T00:00:00';
   const ps=new Date(psStr),pe=new Date(D.config.deadline);
   const totalDays=Math.ceil((pe-ps)/864e5);
   const now=new Date(),todayPct=Math.min(100,Math.max(0,(now-ps)/(pe-ps)*100));
-  const barCols=[C.blue,C.green,C.orange,C.purple,C.pink,C.cyan,C.yellow,C.red,C.cyan];
   const LBLW=150;
+
+  // Choose bar color based on assignee (personal view) or index (project)
+  const barCols=[C.blue,C.green,C.orange,C.purple,C.pink,C.cyan,C.yellow,C.red,C.cyan];
+  function taskCol(t,i){
+    if(_ganttView==='project'){
+      if(t.assignee==='Archie')return C.blue;
+      if(t.assignee==='SAMOS-76')return C.purple;
+      if(t.assignee==='Both')return C.cyan;
+      return barCols[i%barCols.length];
+    }
+    return barCols[i%barCols.length];
+  }
+
   // Week label row
   let h=`<div style="display:flex;margin-left:${LBLW}px;margin-bottom:.1rem">`;
-  for(let w=0;w<4;w++){
-    const wPct=7/totalDays*100;
-    h+=`<div style="flex:${wPct};font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--blue);text-align:center;border-left:1px solid var(--bd);padding-left:.2rem">Wk${w+1}</div>`;
-  }
-  // remaining days after week 4
+  for(let w=0;w<4;w++){h+=`<div style="flex:${7/totalDays*100};font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--blue);text-align:center;border-left:1px solid var(--bd);padding-left:.2rem">Wk${w+1}</div>`;}
   const extraDays=totalDays-28;
   if(extraDays>0)h+=`<div style="flex:${extraDays/totalDays*100}"></div>`;
   h+='</div>';
+
   // Day number row
   h+=`<div style="display:flex;margin-left:${LBLW}px;margin-bottom:.3rem">`;
   for(let i=0;i<totalDays;i++){
     const d=new Date(ps.getTime()+i*864e5);
     const isMon=d.getDay()===1,isSun=d.getDay()===0;
-    const col=isMon?C.blue:isSun?C.dim:'var(--dim)';
-    h+=`<div style="flex:1;font-family:var(--mono);font-size:.5rem;color:${col};text-align:center;${isMon?'font-weight:700;':'opacity:.5;'}">${d.getDate()}</div>`;
+    h+=`<div style="flex:1;font-family:var(--mono);font-size:.5rem;color:${isMon?C.blue:'var(--dim)'};text-align:center;${isMon?'font-weight:700;':'opacity:.5;'}">${d.getDate()}</div>`;
   }
   h+='</div>';
+
+  // Legend for project view
+  if(_ganttView==='project'){
+    h+=`<div style="display:flex;gap:.8rem;margin-left:${LBLW}px;margin-bottom:.5rem;font-family:var(--mono);font-size:.6rem">
+      <span style="color:${C.blue}">■ Archie</span>
+      <span style="color:${C.purple}">■ SAMOS</span>
+      <span style="color:${C.cyan}">■ Both</span>
+      <span style="color:var(--dim)">■ Unassigned</span>
+    </div>`;
+  }
+
   // Task rows
   tasks.forEach((t,i)=>{
     const wStart=(t.week-1)*7,wEnd=Math.min(t.week*7,totalDays);
     const leftPct=wStart/totalDays*100,widthPct=(wEnd-wStart)/totalDays*100;
     const totalT=t.total_time||0;
     const pct=t.planned_hours?Math.min(100,Math.round(totalT/t.planned_hours*100)):0;
-    const col=barCols[i%barCols.length];
+    const col=taskCol(t,i);
     const isMilestone=(t.title||'').startsWith('★');
-    // Week separator lines
     let seps='';
     for(let w=1;w<4;w++)seps+=`<div style="position:absolute;left:${w*7/totalDays*100}%;top:0;bottom:0;width:1px;background:var(--bd);z-index:1"></div>`;
     h+=`<div class="gantt-row">
