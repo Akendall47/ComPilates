@@ -408,7 +408,7 @@ async function loadTasksFromAPI(){
     // Build a map of commit/git_time data already in D.tasks (from dashboard_data.json)
     const commitMap={};
     (D.tasks||[]).forEach(t=>{commitMap[t.id||t.task_id]=t;});
-    D.tasks=(data.tasks||[]).map(t=>{
+    D.tasks=(data.tasks||[]).filter(t=>!String(t.task_id||'').startsWith('M')).map(t=>{
       const ex=commitMap[t.task_id]||{};
       return{...t,id:t.task_id,linked_commits:ex.linked_commits||[],
         git_time:ex.git_time||0,total_time:(parseFloat(t.logged_hours)||0)+(ex.git_time||0),
@@ -496,7 +496,7 @@ function rTasks(){
     <div class="card" style="text-align:center"><div class="kl">Done</div><div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:${C.green}">${done}</div></div>`;
 
   document.getElementById('taskList').innerHTML=tasks.map((t,i)=>{
-    const isMilestone=t.title.startsWith('★');
+    const isMilestone=(t.title||'').startsWith('★');
     const catCol=TC[t.category]||C.dim;
     const st=t.status||'todo';
     const actual=t.total_time||0;
@@ -739,7 +739,7 @@ function rGantt(){
     const totalT=t.total_time||0;
     const pct=t.planned_hours?Math.min(100,Math.round(totalT/t.planned_hours*100)):0;
     const col=barCols[i%barCols.length];
-    const isMilestone=t.title.startsWith('★');
+    const isMilestone=(t.title||'').startsWith('★');
     // Week separator lines
     let seps='';
     for(let w=1;w<4;w++)seps+=`<div style="position:absolute;left:${w*7/totalDays*100}%;top:0;bottom:0;width:1px;background:var(--bd);z-index:1"></div>`;
