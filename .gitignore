@@ -1,7 +1,7 @@
 # Generated dashboard artefact
 dashboard_data.json
 
-# Python
+### Python
 __pycache__/
 *.pyc
 *.pyo
