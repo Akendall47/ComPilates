@@ -125,13 +125,16 @@ canvas{width:100%!important}
 [data-theme="light"]{--bg:#f0f4f8;--s1:#ffffff;--s2:#e8eef5;--s3:#dde5ef;--s4:#c8d4e2;--bd:#c0ccd8;--tx:#1a2535;--dim:#6b7f96;--blue:#0077cc;--green:#1e9e2a;--orange:#c75c00;--purple:#7c3aed;--pink:#c2185b;--red:#d32f2f;--cyan:#00796b;--yellow:#c79100}
 [data-theme="light"] .modal-overlay{background:rgba(0,0,0,.45)}
 [data-theme="light"] .gantt-bar{color:#fff}
+/* Logo */
+.logo{height:38px;width:auto;vertical-align:middle;margin-right:.6rem;mix-blend-mode:multiply;filter:invert(1) hue-rotate(180deg) brightness(1.8)}
+[data-theme="light"] .logo{mix-blend-mode:normal;filter:none}
 </style>
 </head>
 <body>
 <div class="shell">
 
 <div class="top">
-  <h1>📊 <em>C90→RISC-V</em> Compiler Dashboard</h1>
+  <h1><img src="Images/transparent_logo_compilates.png" alt="ComPilates" class="logo"><em>C90→RISC-V</em> Compiler Dashboard</h1>
   <div style="display:flex;align-items:center;gap:.8rem">
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
     <div class="m" id="meta"></div>

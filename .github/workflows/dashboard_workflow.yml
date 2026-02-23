@@ -37,3 +37,4 @@ jobs:
         run: |
           aws s3 cp dashboard/dashboard_index.html s3://compilates-dashboard/index.html
           aws s3 cp dashboard_data.json s3://compilates-dashboard/dashboard_data.json
+          aws s3 sync dashboard/Images s3://compilates-dashboard/Images --delete
