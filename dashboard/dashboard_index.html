@@ -256,6 +256,34 @@ canvas{width:100%!important}
     </div>
 
     <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Branches</div>
+      <div class="note" style="margin:0">
+        Branches are <b>auto-linked to tasks</b> when the branch name contains a task ID:<br><br>
+        <code>git checkout -b feature/T01-parser</code><br>
+        <code>git checkout -b T12-codegen</code><br>
+        <code>git checkout -b fix/T06-stack-alignment</code><br><br>
+        Use <code>T01</code> (no <code>#</code>) in branch names — separators can be <code>/</code>, <code>_</code>, or <code>-</code>.<br><br>
+        The Task Board shows a branch chip on each linked task. Status is automatic:<br>
+        <span style="color:var(--green)">●</span> <b>merged</b> — merged into main &nbsp;·&nbsp;
+        <span style="color:var(--blue)">●</span> <b>open</b> — active &nbsp;·&nbsp;
+        <span style="color:var(--dim)">●</span> <b>stale</b> — no commits in 14+ days<br><br>
+        You can also manually set a branch name on a task via <b>Edit Task</b> → Branch field (useful for non-standard names).
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
+      <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Logging meetings</div>
+      <div class="note" style="margin:0">
+        Go to the <b>Meetings</b> tab → click <b>+ Log Meeting</b>.<br><br>
+        <b>Meeting ID</b> — use sequential IDs like <code>M001</code>, <code>M002</code> etc.<br>
+        <b>Duration</b> — hours spent (counts towards total project time).<br>
+        <b>Agenda / Topic</b> — what you planned to discuss.<br>
+        <b>Outcomes / Action Items</b> — decisions made, next steps, who does what.<br><br>
+        Meetings are stored in DynamoDB and visible to both partners immediately. Click <b>Edit</b> on any meeting card to update or delete it.
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.4rem">
       <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Commit message format (full reference)</div>
       <div class="note" style="margin:0">
         <code>git commit -m "description #T01 #T02 [2h]"</code><br><br>
