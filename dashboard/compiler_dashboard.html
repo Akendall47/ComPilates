@@ -118,7 +118,7 @@ canvas{width:100%!important}
     <div class="card"><div class="ct">Commit Categories</div><div class="pic"><canvas id="cPie" width="190" height="190" style="max-width:190px;max-height:190px"></canvas><div class="pl" id="pieLeg"></div></div></div>
   </div>
   <div class="row r2">
-    <div class="card"><div class="ct">Test Cases (seen)</div><div id="testBars"></div></div>
+    <div class="card"><div class="ct">Test Cases <span style="font-weight:400;text-transform:none;font-size:.62rem;color:var(--dim)">edit passing count per category</span></div><div id="testBars"></div></div>
     <div class="card"><div class="ct">Contributors</div><div id="authCards"></div></div>
   </div>
 </div>
@@ -2823,11 +2823,17 @@ function rMeta(){
 function rKPIs(){
   const s=D.summary,dl=new Date(D.config.deadline),days=Math.max(0,Math.ceil((dl-new Date())/864e5));
   const tasks=D.tasks||[],done=tasks.filter(t=>t.status==='done').length;
+  const passes=getTestPasses(),cats=D.test_categories||{};
+  const totalPassing=Object.entries(cats).reduce((sum,[c,n])=>sum+Math.min(passes[c]||0,n),0);
+  const totalTests=86;
+  const pct=Math.round(totalPassing/totalTests*100);
+  const passCol=pct>=70?C.green:pct>=40?C.orange:C.red;
   document.getElementById('kpis').innerHTML=`
     <div class="kpi b"><div class="kl">Commits</div><div class="kv" style="color:${C.blue}">${s.total_commits}</div><div class="ks">${s.authors.length} contributor${s.authors.length!==1?'s':''}</div></div>
     <div class="kpi g"><div class="kl">Lines Changed</div><div class="kv" style="color:${C.green}">+${s.total_added.toLocaleString()}</div><div class="ks" style="color:${C.red}">−${s.total_deleted.toLocaleString()}</div></div>
     <div class="kpi o"><div class="kl">Hours Logged</div><div class="kv" style="color:${C.orange}">${totalHrs().toFixed(1)}h</div><div class="ks">${s.total_time_logged}h git + ${manualHrs().toFixed(1)}h manual</div></div>
     <div class="kpi p"><div class="kl">Tasks Done</div><div class="kv" style="color:${C.purple}">${done}/${tasks.length}</div><div class="ks">${tasks.length?Math.round(done/tasks.length*100):0}% complete</div></div>
+    <div class="kpi g"><div class="kl">Tests Passing</div><div class="kv" style="color:${passCol}">${totalPassing}<span style="font-size:1rem;color:var(--dim)">/86</span></div><div class="ks">${pct}% — update in Overview</div></div>
     <div class="kpi ${days>10?'b':days>5?'o':'r'}"><div class="kl">Days Left</div><div class="kv" style="color:${days>10?C.blue:days>5?C.orange:C.red}">${days}</div><div class="ks">${dl.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}, 15:00</div></div>`;
 }
 
@@ -2856,9 +2862,50 @@ function rPie(){
 }
 
 // ─── TESTS ───
+function getTestPasses(){try{return JSON.parse(localStorage.getItem('test_passes')||'{}')}catch{return{}}}
+function saveTestPasses(p){localStorage.setItem('test_passes',JSON.stringify(p))}
+
 function rTests(){
-  const cats=D.test_categories,s=Object.entries(cats).sort((a,b)=>b[1]-a[1]),mx=Math.max(...s.map(([,v])=>v),1);
-  document.getElementById('testBars').innerHTML=s.map(([c,n])=>`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><div style="font-family:var(--mono);font-size:.7rem;color:var(--dim);width:75px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis">${c}</div><div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${n/mx*100}%;background:${C.cyan};border-radius:3px"></div></div><div style="font-family:var(--mono);font-size:.66rem;color:var(--dim);width:22px">${n}</div></div>`).join('');
+  const cats=D.test_categories,s=Object.entries(cats).sort((a,b)=>a[0].localeCompare(b[0]));
+  const passes=getTestPasses();
+  const totalPassing=Object.entries(cats).reduce((sum,[c,n])=>sum+Math.min(passes[c]||0,n),0);
+  const totalTests=Object.values(cats).reduce((a,v)=>a+v,0);
+  const pct=totalTests?Math.round(totalPassing/totalTests*100):0;
+  const pctCol=pct>=70?C.green:pct>=40?C.orange:C.red;
+
+  const header=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+    <div style="font-family:var(--mono);font-size:.72rem;color:var(--dim)">click number to edit — saved in browser</div>
+    <div style="font-family:var(--mono);font-size:.8rem;font-weight:700;color:${pctCol}">${totalPassing}/${totalTests} <span style="font-size:.65rem;font-weight:400;color:var(--dim)">${pct}%</span></div>
+  </div>`;
+
+  const rows=s.map(([c,total])=>{
+    const p=Math.min(passes[c]||0,total);
+    const pw=total?p/total*100:0;
+    const col=p===total?C.green:p>0?C.orange:C.red;
+    return`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+      <div style="font-family:var(--mono);font-size:.68rem;color:var(--dim);width:80px;text-align:right;flex-shrink:0">${c}</div>
+      <div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pw}%;background:${col};border-radius:3px;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.2rem;flex-shrink:0">
+        <input type="number" min="0" max="${total}" value="${p}"
+          style="font-family:var(--mono);font-size:.7rem;width:32px;padding:.1rem .2rem;background:var(--s2);border:1px solid var(--bd);border-radius:4px;color:var(--tx);text-align:center"
+          onchange="updateTestPass('${c}',this.value,${total})"
+          onfocus="this.select()">
+        <span style="font-family:var(--mono);font-size:.66rem;color:var(--dim)">/${total}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('testBars').innerHTML=header+rows;
+}
+
+function updateTestPass(cat,val,max){
+  const passes=getTestPasses();
+  passes[cat]=Math.max(0,Math.min(parseInt(val)||0,max));
+  saveTestPasses(passes);
+  rTests();
+  rKPIs();  // refresh KPI total too
 }
 
 // ─── AUTHORS ───
