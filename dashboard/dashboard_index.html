@@ -421,10 +421,16 @@ function rTasks(){
     const totalT=actual;
     const pctBar=t.planned_hours?Math.min(100,Math.round(totalT/t.planned_hours*100)):0;
     const overCol=totalT>t.planned_hours?C.orange:C.green;
+    const branches=getBranches(t);
+    const topBranch=branches[0];
+    const topBranchHtml=topBranch?'<br><span class="branch-chip '+topBranch.status+'" title="'+esc(topBranch.name)+'">&#8983; '+esc(topBranch.name)+'</span>':'';
+    const branchDetailHtml=branches.length
+      ?'<div style="margin-bottom:.4rem"><label>Branches:</label><div style="display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.2rem">'+branches.map(function(b){return'<span class="branch-chip '+b.status+'" title="'+esc(b.name)+'">&#8983; '+esc(b.name)+' <span style="opacity:.55;font-size:.55rem">'+b.status+'</span></span>';}).join('')+'</div></div>'
+      :'<div style="font-size:.78rem;color:var(--dim);margin-bottom:.4rem">No branch linked \u2014 name a branch <code style="font-family:var(--mono);background:var(--s3);padding:.05rem .2rem;border-radius:3px;color:var(--tx)">feature/'+esc(t.id)+'-name</code> or set one in Edit Task</div>';
 
     return`<div class="task${isMilestone?' milestone':''}" id="tr-${i}">
       <div class="tid">${t.id}</div>
-      ${(()=>{const bs=getBranches(t);const b=bs[0];return`<div class="tname" title="${esc(t.title)}">${esc(t.title)}${b?`<br><span class="branch-chip ${b.status}" title="${esc(b.name)}">⎇ ${esc(b.name)}</span>`:''}</div>`})()}
+      <div class="tname" title="${esc(t.title)}">${esc(t.title)}${topBranchHtml}</div>
       <div><div class="tcat" style="background:${catCol}18;color:${catCol}">${t.category}</div></div>
       <div><div class="tstat ${st}" onclick="quickUpdateStatus('${t.id}','${st}')" title="Click to cycle status" style="cursor:pointer">${st}</div></div>
       <div class="twk">W${t.week}</div>
@@ -439,7 +445,7 @@ function rTasks(){
         <button class="btn btn-g" onclick="showEditTaskModal('${t.id}')" style="margin-left:auto">Edit Task</button>
       </div>
       ${t.notes?`<div style="font-size:.8rem;color:var(--dim);margin-bottom:.5rem">${esc(t.notes)}</div>`:''}
-      ${(()=>{const bl=getBranches(t);return bl.length?`<div style="margin-bottom:.4rem"><label>Branches:</label><div style="display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.2rem">${bl.map(b=>`<span class="branch-chip ${b.status}" title="${esc(b.name)}">⎇ ${esc(b.name)} <span style="opacity:.55;font-size:.55rem">${b.status}</span></span>`).join('')}</div></div>`:`<div style="font-size:.78rem;color:var(--dim);margin-bottom:.4rem">No branch linked — name a branch <code style="font-family:var(--mono);background:var(--s3);padding:.05rem .2rem;border-radius:3px;color:var(--tx)">feature/${esc(t.id)}-name</code> or set one in Edit Task</div>`})()}
+      ${branchDetailHtml}
       <div style="margin-bottom:.5rem">
         <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pctBar}%;background:${overCol};border-radius:3px"></div></div>
         <div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:.15rem">${pctBar}% of planned hours</div>
