@@ -143,6 +143,73 @@ def delete_task(task_id):
     return respond(200, {"deleted": task_id})
 
 
+def get_all_meetings():
+    resp  = table.query(KeyConditionExpression=Key("project_id").eq(PROJECT_ID))
+    items = resp.get("Items", [])
+    meetings = [i for i in items if str(i.get("task_id", "")).startswith("M")]
+    meetings.sort(key=lambda m: m.get("task_id", ""), reverse=True)
+    return respond(200, {"meetings": meetings})
+
+
+def create_meeting(body):
+    meeting_id = (body.get("meeting_id") or "").strip().upper()
+    if not meeting_id:
+        return respond(400, {"error": "meeting_id is required"})
+    item = {
+        "project_id":  PROJECT_ID,
+        "task_id":     meeting_id,
+        "date":        body.get("date", ""),
+        "duration":    Decimal(str(body.get("duration", 0))),
+        "agenda":      body.get("agenda", ""),
+        "outcomes":    body.get("outcomes", ""),
+        "record_type": "meeting",
+    }
+    try:
+        table.put_item(Item=item, ConditionExpression="attribute_not_exists(task_id)")
+    except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+        return respond(409, {"error": f"Meeting {meeting_id} already exists"})
+    return respond(201, item)
+
+
+def update_meeting(meeting_id, body):
+    allowed = {"date", "duration", "agenda", "outcomes"}
+    numeric = {"duration"}
+    parts, names, values = [], {}, {}
+    for field in allowed:
+        if field not in body:
+            continue
+        val = Decimal(str(body[field])) if field in numeric else body[field]
+        safe = f"#f_{field}"
+        names[safe] = field
+        values[f":v_{field}"] = val
+        parts.append(f"{safe} = :v_{field}")
+    if not parts:
+        return respond(400, {"error": "No valid fields to update"})
+    try:
+        result = table.update_item(
+            Key={"project_id": PROJECT_ID, "task_id": meeting_id},
+            UpdateExpression="SET " + ", ".join(parts),
+            ExpressionAttributeNames=names,
+            ExpressionAttributeValues=values,
+            ConditionExpression="attribute_exists(task_id)",
+            ReturnValues="ALL_NEW",
+        )
+    except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+        return respond(404, {"error": f"Meeting {meeting_id} not found"})
+    return respond(200, result.get("Attributes", {}))
+
+
+def delete_meeting(meeting_id):
+    try:
+        table.delete_item(
+            Key={"project_id": PROJECT_ID, "task_id": meeting_id},
+            ConditionExpression="attribute_exists(task_id)",
+        )
+    except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+        return respond(404, {"error": f"Meeting {meeting_id} not found"})
+    return respond(200, {"deleted": meeting_id})
+
+
 def lambda_handler(event, context):
     route_key   = event.get("routeKey", "")
     path_params = event.get("pathParameters") or {}
@@ -163,6 +230,14 @@ def lambda_handler(event, context):
             return update_task(task_id, body)
         elif route_key == f"DELETE /tasks/{{task_id}}":
             return delete_task(task_id)
+        elif route_key == "GET /meetings":
+            return get_all_meetings()
+        elif route_key == "POST /meetings":
+            return create_meeting(body)
+        elif route_key == f"PATCH /meetings/{{meeting_id}}":
+            return update_meeting(path_params.get("meeting_id", ""), body)
+        elif route_key == f"DELETE /meetings/{{meeting_id}}":
+            return delete_meeting(path_params.get("meeting_id", ""))
         else:
             return respond(404, {"error": f"Unknown route: {route_key}"})
     except Exception as e:
