@@ -75,6 +75,8 @@ def parse_task_ids(msg):
 def extract_tags(msg):
     return sorted({tag for pat, tag in TAG_PATTERNS if re.search(pat, msg, re.I)})
 
+ALLOWED_AUTHORS = {"Archie", "SAMOS-76"}  # add partner's git name here when known
+
 def get_commits():
     SEP = "|||"
     log = git(["log", "--all", "--no-merges", f"--pretty=format:%H{SEP}%an{SEP}%ae{SEP}%aI{SEP}%s"])
@@ -85,6 +87,7 @@ def get_commits():
         if len(parts) < 5: continue
         h, author, email, ts, subject = parts
         if author == "Dashboard Bot": continue
+        if author not in ALLOWED_AUTHORS: continue
         dt = datetime.fromisoformat(ts)
         ps = datetime.fromisoformat(PROJECT_START).replace(tzinfo=dt.tzinfo)
         if dt < ps: continue
