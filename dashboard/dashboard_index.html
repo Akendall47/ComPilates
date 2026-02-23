@@ -34,7 +34,7 @@ canvas{width:100%!important}
 .task.hdr:hover{background:transparent}
 .task.milestone{background:rgba(182,138,255,.04);border-left:3px solid var(--purple)}
 .tid{font-family:var(--mono);font-size:.72rem;color:var(--blue);font-weight:600}
-.tname{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tname{font-weight:500;overflow:hidden}
 .tcat{font-family:var(--mono);font-size:.65rem;padding:.1rem .4rem;border-radius:4px;text-align:center}
 .tstat{font-family:var(--mono);font-size:.65rem;font-weight:600;padding:.12rem .45rem;border-radius:4px;text-align:center;cursor:pointer}
 .tstat.todo{background:rgba(92,112,133,.15);color:var(--dim)}.tstat.progress{background:rgba(77,184,255,.15);color:var(--blue)}.tstat.done{background:rgba(109,214,116,.15);color:var(--green)}.tstat.blocked{background:rgba(255,87,87,.15);color:var(--red)}
@@ -54,6 +54,11 @@ canvas{width:100%!important}
 .btn-g{background:var(--s3);color:var(--dim)}.btn-g:hover{color:var(--tx)}
 .btn-d{background:var(--red);color:#fff}.btn-d:hover{filter:brightness(1.15)}
 .chip{display:inline-flex;align-items:center;gap:.2rem;font-family:var(--mono);font-size:.65rem;font-weight:600;padding:.12rem .45rem;border-radius:4px;margin:.1rem}
+.branch-chip{display:inline-flex;align-items:center;gap:.2rem;font-family:var(--mono);font-size:.6rem;font-weight:600;padding:.1rem .35rem;border-radius:3px;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;margin-top:.15rem}
+.branch-chip.merged{background:rgba(109,214,116,.12);color:var(--green);border:1px solid rgba(109,214,116,.3)}
+.branch-chip.open{background:rgba(77,184,255,.12);color:var(--blue);border:1px solid rgba(77,184,255,.3)}
+.branch-chip.stale{background:rgba(92,112,133,.12);color:var(--dim);border:1px solid rgba(92,112,133,.3)}
+.branch-chip.manual{background:rgba(182,138,255,.12);color:var(--purple);border:1px solid rgba(182,138,255,.3)}
 .linked-commit{display:flex;align-items:center;gap:.5rem;padding:.25rem .4rem;background:var(--s1);border-radius:4px;margin:.15rem 0;font-size:.75rem}
 .linked-commit .h{font-family:var(--mono);color:var(--blue);font-size:.7rem;flex-shrink:0}
 .linked-commit .msg{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -277,6 +282,7 @@ canvas{width:100%!important}
       <div class="mfield"><label>Assignee</label><input id="mAssignee" type="text" placeholder="Leave blank = unassigned"></div>
       <div class="mfield"><label>Depends on (comma-separated)</label><input id="mDepends" type="text" placeholder="T01, T02"></div>
       <div class="mfield"><label>Notes</label><textarea id="mNotes" rows="3" style="resize:vertical"></textarea></div>
+      <div class="mfield"><label>Branch (manual override)</label><input id="mBranch" type="text" placeholder="feature/T01-parser (leave blank for auto-detect)"></div>
     </div>
     <div class="merr" id="modalErr"></div>
     <div style="display:flex;gap:.5rem;margin-top:1rem;justify-content:flex-end">
@@ -297,6 +303,14 @@ function esc(s){const d=document.createElement('div');d.textContent=s;return d.i
 
 // ── Set this to your API Gateway invoke URL after creating the HTTP API ──────
 const API_BASE='https://6gjfy2a0w8.execute-api.eu-north-1.amazonaws.com';
+
+function getBranches(t){
+  const auto=(t.auto_branches||[]).map(b=>({name:b.name,status:b.status}));
+  const manual=(t.branch||'').trim();
+  if(!manual)return auto;
+  const autoNames=new Set(auto.map(b=>b.name));
+  return autoNames.has(manual)?auto:[{name:manual,status:'manual'},...auto];
+}
 
 async function init(){
   // 1. Load git/commit/stats data from pre-generated JSON
@@ -326,7 +340,8 @@ async function loadTasksFromAPI(){
     D.tasks=(data.tasks||[]).map(t=>{
       const ex=commitMap[t.task_id]||{};
       return{...t,id:t.task_id,linked_commits:ex.linked_commits||[],
-        git_time:ex.git_time||0,total_time:(parseFloat(t.logged_hours)||0)+(ex.git_time||0)};
+        git_time:ex.git_time||0,total_time:(parseFloat(t.logged_hours)||0)+(ex.git_time||0),
+        auto_branches:ex.auto_branches||[]};
     });
     console.log('Loaded',D.tasks.length,'tasks from API');
   }catch(e){
@@ -409,7 +424,7 @@ function rTasks(){
 
     return`<div class="task${isMilestone?' milestone':''}" id="tr-${i}">
       <div class="tid">${t.id}</div>
-      <div class="tname" title="${esc(t.title)}">${esc(t.title)}</div>
+      ${(()=>{const bs=getBranches(t);const b=bs[0];return`<div class="tname" title="${esc(t.title)}">${esc(t.title)}${b?`<br><span class="branch-chip ${b.status}" title="${esc(b.name)}">⎇ ${esc(b.name)}</span>`:''}</div>`})()}
       <div><div class="tcat" style="background:${catCol}18;color:${catCol}">${t.category}</div></div>
       <div><div class="tstat ${st}" onclick="quickUpdateStatus('${t.id}','${st}')" title="Click to cycle status" style="cursor:pointer">${st}</div></div>
       <div class="twk">W${t.week}</div>
@@ -424,6 +439,7 @@ function rTasks(){
         <button class="btn btn-g" onclick="showEditTaskModal('${t.id}')" style="margin-left:auto">Edit Task</button>
       </div>
       ${t.notes?`<div style="font-size:.8rem;color:var(--dim);margin-bottom:.5rem">${esc(t.notes)}</div>`:''}
+      ${(()=>{const bl=getBranches(t);return bl.length?`<div style="margin-bottom:.4rem"><label>Branches:</label><div style="display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.2rem">${bl.map(b=>`<span class="branch-chip ${b.status}" title="${esc(b.name)}">⎇ ${esc(b.name)} <span style="opacity:.55;font-size:.55rem">${b.status}</span></span>`).join('')}</div></div>`:`<div style="font-size:.78rem;color:var(--dim);margin-bottom:.4rem">No branch linked — name a branch <code style="font-family:var(--mono);background:var(--s3);padding:.05rem .2rem;border-radius:3px;color:var(--tx)">feature/${esc(t.id)}-name</code> or set one in Edit Task</div>`})()}
       <div style="margin-bottom:.5rem">
         <div style="height:6px;background:var(--s3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pctBar}%;background:${overCol};border-radius:3px"></div></div>
         <div style="font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:.15rem">${pctBar}% of planned hours</div>
@@ -463,7 +479,7 @@ function showAddTaskModal(){
   document.getElementById('modalTitle').textContent='New Task';
   document.getElementById('mTaskId').value='';
   document.getElementById('mTaskId').disabled=false;
-  ['mTitle','mAssignee','mDepends','mNotes'].forEach(id=>document.getElementById(id).value='');
+  ['mTitle','mAssignee','mDepends','mNotes','mBranch'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mCategory').value='codegen';
   document.getElementById('mWeek').value='1';
   document.getElementById('mStatus').value='todo';
@@ -490,6 +506,7 @@ function showEditTaskModal(taskId){
   document.getElementById('mAssignee').value=t.assignee||'';
   document.getElementById('mDepends').value=(t.depends_on||[]).join(', ');
   document.getElementById('mNotes').value=t.notes||'';
+  document.getElementById('mBranch').value=t.branch||'';
   document.getElementById('modalErr').style.display='none';
   document.getElementById('modalDelBtn').style.display='inline-flex';
   document.getElementById('taskModal').classList.add('open');
@@ -510,6 +527,7 @@ async function saveTaskFromModal(){
     assignee:    document.getElementById('mAssignee').value.trim()||null,
     depends_on:  document.getElementById('mDepends').value.split(',').map(s=>s.trim()).filter(Boolean),
     notes:       document.getElementById('mNotes').value.trim(),
+    branch:      document.getElementById('mBranch').value.trim(),
   };
   if(!payload.title){errEl.textContent='Title is required';errEl.style.display='block';return;}
   try{

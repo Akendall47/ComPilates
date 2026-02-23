@@ -79,6 +79,8 @@ def create_task(body):
     }
     if body.get("assignee"):
         item["assignee"] = body["assignee"]
+    if body.get("branch") is not None:
+        item["branch"] = str(body["branch"])
 
     try:
         table.put_item(
@@ -93,7 +95,7 @@ def create_task(body):
 
 def update_task(task_id, body):
     allowed = {"title", "category", "assignee", "week", "status",
-               "planned_hours", "logged_hours", "depends_on", "notes"}
+               "planned_hours", "logged_hours", "depends_on", "notes", "branch"}
     numeric = {"week", "planned_hours", "logged_hours"}
 
     parts  = []

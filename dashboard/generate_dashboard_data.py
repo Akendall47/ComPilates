@@ -49,6 +49,7 @@ TAG_PATTERNS = [
 
 TIME_RE = re.compile(r"\[(\d+(?:\.\d+)?)\s*h(?:\s*(\d+)\s*m)?\]|\[(\d+)\s*m\]|\[(\d+)h(\d+)m\]", re.I)
 TASK_RE = re.compile(r"#(T\d+)", re.I)
+BRANCH_TASK_RE = re.compile(r'(?:^|[/_-])(T\d+)(?=[/_-]|$)', re.I)
 
 def repo_root():
     r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
@@ -123,7 +124,35 @@ def count_tests():
 
 def get_branches():
     raw = git(["branch", "-a", "--format=%(refname:short) %(objectname:short)"])
-    return [{"name":p[0],"hash":p[1]} for line in raw.split("\n") if len(p:=line.strip().split())>=2]
+    merged_raw = git(["branch", "-a", "--merged", "HEAD", "--format=%(refname:short)"])
+    merged_set = set(merged_raw.split("\n")) if merged_raw else set()
+
+    result = []
+    for line in raw.split("\n"):
+        p = line.strip().split()
+        if len(p) < 2:
+            continue
+        name, hash_ = p[0], p[1]
+        if name.endswith("/HEAD"):
+            continue
+
+        task_ids = list(dict.fromkeys(m.upper() for m in BRANCH_TASK_RE.findall(name)))
+
+        is_merged = name in merged_set
+        is_stale = False
+        if not is_merged:
+            date_str = git(["log", "-1", "--format=%aI", name])
+            if date_str:
+                try:
+                    branch_dt = datetime.fromisoformat(date_str)
+                    now = datetime.now(tz=branch_dt.tzinfo)
+                    is_stale = (now - branch_dt).days > 14
+                except Exception:
+                    pass
+        status = "merged" if is_merged else ("stale" if is_stale else "open")
+
+        result.append({"name": name, "hash": hash_, "task_ids": task_ids, "status": status})
+    return result
 
 def load_tasks():
     """Load tasks from DynamoDB, falling back to tasks.json for local dev."""
@@ -169,6 +198,11 @@ def main():
     branches = get_branches()
     tasks = load_tasks()
 
+    branch_map = defaultdict(list)
+    for b in branches:
+        for tid in b["task_ids"]:
+            branch_map[tid].append({"name": b["name"], "hash": b["hash"], "status": b["status"]})
+
     for c in commits:
         fs = file_stats.get(c["hash"], {"added":0,"deleted":0,"files_touched":0})
         c.update(fs)
@@ -186,6 +220,7 @@ def main():
         t["linked_commits"] = task_commits.get(tid, [])
         t["git_time"] = round(task_git_time.get(tid, 0), 2)
         t["total_time"] = round(t.get("logged_hours", 0) + task_git_time.get(tid, 0), 2)
+        t["auto_branches"] = branch_map.get(tid, [])
 
     authors = sorted(set(c["author"] for c in commits))
     author_stats = {}
