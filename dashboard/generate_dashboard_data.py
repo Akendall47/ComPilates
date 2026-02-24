@@ -75,7 +75,7 @@ def parse_task_ids(msg):
 def extract_tags(msg):
     return sorted({tag for pat, tag in TAG_PATTERNS if re.search(pat, msg, re.I)})
 
-ALLOWED_AUTHORS = {"Archie", "SAMOS-76"}  # add partner's git name here when known
+ALLOWED_AUTHORS = {"Archie", "SAMOS-76"}  # names
 
 def get_commits():
     SEP = "|||"
@@ -124,6 +124,33 @@ def count_tests():
                 n = len([f for f in os.listdir(p) if f.endswith(".c") and "driver" not in f])
                 if n > 0: cats[c] = n
     return cats
+
+def parse_test_results():
+    """Parse build/junit_results.xml to get per-category pass/fail counts."""
+    import xml.etree.ElementTree as ET
+    xml_path = os.path.join(repo_root(), "build", "junit_results.xml")
+    results = {}
+    if not os.path.exists(xml_path):
+        print("  No junit_results.xml found — run ./test.py first to generate results.")
+        return results
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+        for tc in root.findall("testcase"):
+            name = tc.get("name", "")
+            # name format: "category/testname" e.g. "integer/add"
+            parts = name.replace("\\", "/").split("/")
+            cat = parts[0] if len(parts) >= 2 else "_unknown"
+            passed = tc.find("error") is None
+            if cat not in results:
+                results[cat] = {"pass": 0, "fail": 0}
+            if passed:
+                results[cat]["pass"] += 1
+            else:
+                results[cat]["fail"] += 1
+    except Exception as e:
+        print(f"  WARNING: Could not parse junit_results.xml: {e}")
+    return results
 
 def get_branches():
     raw = git(["branch", "-a", "--format=%(refname:short) %(objectname:short)"])
@@ -194,10 +221,11 @@ def load_tasks():
         return []
 
 def main():
-    print("🔍 Extracting git data...")
+    print(" Extracting git data...")
     commits = get_commits()
     file_stats = get_file_stats()
     tests = count_tests()
+    test_results = parse_test_results()
     branches = get_branches()
     tasks = load_tasks()
 
@@ -263,6 +291,7 @@ def main():
         "hourly": hourly,
         "tags": dict(tag_counts.most_common(20)),
         "test_categories": tests,
+        "test_results": test_results,
         "branches": branches,
         "commits": commits[:100],
     }
@@ -271,8 +300,15 @@ def main():
     with open(out, "w") as f: json.dump(data, f, indent=2)
 
     linked = sum(1 for c in commits if c["task_ids"])
-    print(f"✅ {OUTPUT} — {len(commits)} commits, {len(authors)} authors, {len(tasks)} tasks")
+    total_pass = sum(v["pass"] for v in test_results.values())
+    total_fail = sum(v["fail"] for v in test_results.values())
+    total_tests = sum(tests.values())
+    print(f" {OUTPUT} — {len(commits)} commits, {len(authors)} authors, {len(tasks)} tasks")
     print(f"   {linked} commits linked to tasks, {data['summary']['total_time_logged']}h from git")
+    if test_results:
+        print(f"   Tests: {total_pass} passed, {total_fail} failed of {total_tests} total")
+    else:
+        print(f"   No test results found — run ./test.py to populate")
     print(f"   Commit format: git commit -m \"message #T01 [2h]\"")
 
 if __name__ == "__main__": main()
