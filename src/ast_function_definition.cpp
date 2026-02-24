@@ -1,16 +1,21 @@
 #include "ast_function_definition.hpp"
 
+#include <sstream>
+
 namespace ast {
 
 void FunctionDefinition::EmitRISC(std::ostream& stream,
                                   Context& context) const {
-  // Emit assembler directives.
-  // TODO: these are just examples ones, make sure you understand
-  // the concept of directives and correct them.
-  stream << ".text" << std::endl;
-  stream << ".globl f" << std::endl;
+  // extract func name by get declarators print output
+  std::ostringstream name_stream;
+  declarator_->Print(name_stream);
+  context.current_function = name_stream.str();
 
-  declarator_->EmitRISC(stream, context);
+  stream << ".text\n";
+  stream << ".globl " << context.current_function << "\n";
+
+  declarator_->EmitRISC(stream, context);  // emits "funcname:\n"
+  context.EmitPrologue(stream);
 
   if (compound_statement_ != nullptr) {
     compound_statement_->EmitRISC(stream, context);

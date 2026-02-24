@@ -6,7 +6,8 @@ void ReturnStatement::EmitRISC(std::ostream& stream, Context& context) const {
   if (expression_ != nullptr) {
     expression_->EmitRISC(stream, context);
   }
-  stream << "ret" << std::endl;
+  context.EmitEpilogue(stream);
+  stream << "ret\n";  // epilogue completes, jump back to caller via ra
 }
 
 void ReturnStatement::Print(std::ostream& stream) const {
