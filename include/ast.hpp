@@ -4,8 +4,10 @@
 #include <string>
 #include <vector>
 
+#include "ast_assignment.hpp"
 #include "ast_constant.hpp"
 #include "ast_context.hpp"
+#include "ast_declaration.hpp"
 #include "ast_direct_declarator.hpp"
 #include "ast_function_definition.hpp"
 #include "ast_identifier.hpp"

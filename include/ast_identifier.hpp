@@ -11,6 +11,7 @@ class Identifier : public Node {
  public:
   Identifier(std::string identifier) : identifier_(std::move(identifier)) {};
 
+  const std::string& GetName() const { return identifier_; }
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
 };

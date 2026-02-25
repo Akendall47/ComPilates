@@ -115,7 +115,12 @@ parameter_declaration
 	;
 
 declaration
-	: declaration_specifiers declarator ';' { $$ = $2; }
+	: declaration_specifiers declarator ';' {
+		//static cast may be more effieicent, but less safe, especially as we groww
+		Identifier* id = dynamic_cast<Identifier*>($2);
+		$$ = new Declaration($1, id->GetName());
+		delete $2;
+	}
 	;
 
 expression_statement
@@ -215,7 +220,13 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression
-	| unary_expression '=' assignment_expression { $$ = $1; delete $3; }
+	| unary_expression '=' assignment_expression {
+		// extract name from lhs Identifier, build Assignment node owning rhs
+
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr($3));
+		delete $1;
+	}
 	;
 
 expression

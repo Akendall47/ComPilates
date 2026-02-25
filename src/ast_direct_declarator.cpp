@@ -3,8 +3,10 @@
 namespace ast {
 
 void DirectDeclarator::EmitRISC(std::ostream& stream, Context& context) const {
-  identifier_->EmitRISC(stream, context);
-  stream << ":" << std::endl;
+  // emit function label using GetName() avoids calling Identifier::EmitRISC
+  // which now does a stack load
+  stream << GetName() << ":\n";
+  (void)context;
 }
 
 void DirectDeclarator::Print(std::ostream& stream) const {

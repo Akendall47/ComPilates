@@ -4,7 +4,8 @@ namespace ast {
 
 void ReturnStatement::EmitRISC(std::ostream& stream, Context& context) const {
   if (expression_ != nullptr) {
-    expression_->EmitRISC(stream, context);
+    expression_->EmitRISC(stream, context);  // result lands in a5
+    stream << "mv      a0, a5\n";            // move to return reg
   }
   context.EmitEpilogue(stream);
   stream << "ret\n";  // epilogue completes, jump back to caller via ra

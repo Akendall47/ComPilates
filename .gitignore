@@ -12,6 +12,9 @@ coverage/
 *.d
 *.pyc
 
+# Personal notes
+notes/
+
 # Generated dashboard artefact
 dashboard_data.json
 

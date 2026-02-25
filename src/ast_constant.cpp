@@ -3,7 +3,7 @@
 namespace ast {
 
 void IntConstant::EmitRISC(std::ostream& stream, Context&) const {
-  stream << "li a0, " << value_ << std::endl;
+  stream << "li      a5, " << value_ << "\n";
 }
 
 void IntConstant::Print(std::ostream& stream) const { stream << value_; }

@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <string>
+#include <unordered_map>
 
 namespace ast {
 // An object of class Context is passed between ast nodes during compilation.
@@ -11,6 +12,16 @@ class Context {
  public:
   std::string current_function;
   int stack_frame_size = 16;
+
+  // basic symbol table for now; maps variable name to offset from s0
+  std::unordered_map<std::string, int> locals;
+
+  // allocate next stack slot, returns its offset from s0
+  int AllocateLocal(const std::string& name) {
+    int offset = -(int)((locals.size() + 1) * 4 + 8);
+    locals[name] = offset;
+    return offset;
+  }
 
   // ostream base class, so method works with any of its derivatives
   /*confirmed with GodBolt*/
