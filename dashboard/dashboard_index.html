@@ -582,33 +582,48 @@ function rTestHistory(){
   const passing=h.map(e=>e.passing);
   const total=h[0].total||86;
 
+  const cs=getComputedStyle(document.documentElement);
+  const clrTx=cs.getPropertyValue('--tx').trim()||'#c8d4e2';
+  const clrDim=cs.getPropertyValue('--dim').trim()||'#5c7085';
+  const clrBd=cs.getPropertyValue('--bd').trim()||'#243040';
+
   _chartTestHistory=new Chart(ctx,{
     type:'line',
     data:{
       labels,
       datasets:[
-        {label:'Passing',data:passing,borderColor:C.green,backgroundColor:C.green+'22',fill:true,tension:.3,pointRadius:4,pointHoverRadius:6},
-        {label:'Total',data:h.map(()=>total),borderColor:C.dim+'55',borderDash:[4,4],pointRadius:0,fill:false}
+        {label:'Passing',data:passing,borderColor:C.green,backgroundColor:C.green+'33',fill:true,tension:.3,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:C.green,borderWidth:2},
+        {label:'Total (86)',data:h.map(()=>total),borderColor:clrDim,borderDash:[4,4],pointRadius:0,fill:false,borderWidth:1}
       ]
     },
     options:{
       responsive:true,
-      plugins:{legend:{display:true,labels:{color:'var(--tx)',font:{family:'IBM Plex Mono',size:11}}},tooltip:{callbacks:{
-        afterBody:function(items){
-          const i=items[0].dataIndex;
-          const snap=h[i];
-          if(!snap||!snap.categories)return'';
-          const cats=Object.entries(snap.categories).sort((a,b)=>a[0].localeCompare(b[0]));
-          return'\n'+cats.map(([c,v])=>{const max=snap.total;return`  ${c.padEnd(14)} ${v}/${(D.test_categories||{})[c]||'?'}`;}).join('\n');
+      plugins:{
+        legend:{display:true,labels:{color:clrTx,font:{family:'IBM Plex Mono',size:11},boxWidth:12,padding:16}},
+        tooltip:{
+          backgroundColor:'#0f1318',borderColor:clrBd,borderWidth:1,
+          titleColor:clrTx,bodyColor:clrTx,titleFont:{family:'IBM Plex Mono',size:11},bodyFont:{family:'IBM Plex Mono',size:10},
+          callbacks:{
+            afterBody:function(items){
+              const i=items[0].dataIndex;
+              const snap=h[i];
+              if(!snap||!snap.categories)return'';
+              const cats=Object.entries(snap.categories).sort((a,b)=>a[0].localeCompare(b[0]));
+              return'\n'+cats.map(([c,v])=>`  ${c.padEnd(14)} ${v}/${(D.test_categories||{})[c]||'?'}`).join('\n');
+            }
+          }
         }
-      }}},
-      scales:{y:{min:0,max:total,ticks:{color:'var(--dim)',font:{family:'IBM Plex Mono',size:10}},grid:{color:'var(--bd)'}},x:{ticks:{color:'var(--dim)',font:{family:'IBM Plex Mono',size:10}},grid:{color:'var(--bd)'}}}
+      },
+      scales:{
+        y:{min:0,max:total,ticks:{color:clrTx,font:{family:'IBM Plex Mono',size:11}},grid:{color:clrBd+'88'},border:{color:clrBd}},
+        x:{ticks:{color:clrTx,font:{family:'IBM Plex Mono',size:11}},grid:{color:clrBd+'44'},border:{color:clrBd}}
+      }
     }
   });
 
   // Detail table: each row = a day, columns = categories
   const allCats=Object.keys((h[h.length-1]||{}).categories||{}).sort();
-  const thStyle='font-family:var(--mono);font-size:.62rem;color:var(--dim);padding:.2rem .4rem;text-align:center;border-bottom:1px solid var(--bd)';
+  const thStyle='font-family:var(--mono);font-size:.62rem;color:var(--tx);padding:.2rem .4rem;text-align:center;border-bottom:1px solid var(--bd);opacity:.75';
   const tdStyle='font-family:var(--mono);font-size:.62rem;padding:.2rem .35rem;text-align:center;border-bottom:1px solid var(--bd)22';
   const head=`<thead><tr><th style="${thStyle};text-align:left">Date</th><th style="${thStyle}">Total</th>${allCats.map(c=>`<th style="${thStyle}">${c}</th>`).join('')}</tr></thead>`;
   const body=`<tbody>${[...h].reverse().map(e=>{
