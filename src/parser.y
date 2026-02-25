@@ -44,7 +44,9 @@
 %type <node> unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression
 %type <node> equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
-%type <node> parameter_list parameter_declaration
+%type <node> parameter_list parameter_declaration declaration
+%type <node> expression_statement
+
 
 %type <node_list> statement_list
 
@@ -112,8 +114,17 @@ parameter_declaration
 	: declaration_specifiers declarator { $$ = $2; }
 	;
 
+declaration
+	: declaration_specifiers declarator ';' { $$ = $2; }
+	;
+
+expression_statement
+	: expression ';' { $$ = $1; }
+	;
+
 statement
 	: jump_statement { $$ = $1; }
+	| expression_statement { $$ = $1; }
 	;
 
 compound_statement
@@ -122,7 +133,9 @@ compound_statement
 
 statement_list
 	: statement { $$ = new NodeList(NodePtr($1)); }
-	| statement_list statement { $1->PushBack(NodePtr($2)); $$=$1; }
+	| declaration { $$ = new NodeList(NodePtr($1)); }
+	| statement_list statement { $1->PushBack(NodePtr($2)); $$ = $1; }
+	| statement_list declaration { $1->PushBack(NodePtr($2)); $$ = $1; }
 	;
 
 jump_statement
@@ -137,6 +150,10 @@ jump_statement
 primary_expression
 	: INT_CONSTANT {
 		$$ = new IntConstant($1);
+	}
+	| IDENTIFIER {
+		$$ = new Identifier(std::move(*$1));
+		delete $1;
 	}
 	;
 
@@ -198,6 +215,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression
+	| unary_expression '=' assignment_expression { $$ = $1; delete $3; }
 	;
 
 expression
