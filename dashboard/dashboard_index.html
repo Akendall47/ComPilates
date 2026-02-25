@@ -150,6 +150,7 @@ canvas{width:100%!important}
   <button class="tab" data-p="gantt">Gantt Chart</button>
   <button class="tab" data-p="commits">Commits</button>
   <button class="tab" data-p="meetings">Meetings</button>
+  <button class="tab" data-p="tests">Test History</button>
   <button class="tab" data-p="guide">How to Use</button>
 </div>
 
@@ -163,6 +164,21 @@ canvas{width:100%!important}
   <div class="row r2">
     <div class="card"><div class="ct">Test Cases <span style="font-weight:400;text-transform:none;font-size:.62rem;color:var(--dim)">edit passing count per category</span></div><div id="testBars"></div></div>
     <div class="card"><div class="ct">Contributors</div><div id="authCards"></div></div>
+  </div>
+</div>
+
+<!-- ═══ TEST HISTORY ═══ -->
+<div class="P" id="p-tests">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+      <div class="ct" style="margin-bottom:0">Test Progress History</div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button onclick="exportTestHistory()" style="font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;background:var(--s2);border:1px solid var(--bd);border-radius:4px;color:var(--dim);cursor:pointer">export CSV</button>
+        <button onclick="clearTestHistory()" style="font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;background:var(--s2);border:1px solid var(--bd);border-radius:4px;color:var(--dim);cursor:pointer">clear history</button>
+      </div>
+    </div>
+    <canvas id="cTestHistory" height="160"></canvas>
+    <div id="testHistoryTable" style="margin-top:1rem"></div>
   </div>
 </div>
 
@@ -472,7 +488,7 @@ async function loadMeetingsFromAPI(){
 
 function setupTabs(){document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.P').forEach(x=>x.classList.remove('on'));t.classList.add('on');document.getElementById('p-'+t.dataset.p).classList.add('on')}))}
 
-function renderAll(){rMeta();rKPIs();rDaily();rPie();rTests();rAuth();rTasks();rPVA();rTimePie();rTaskComp();rGantt();rLog();rMeetings()}
+function renderAll(){rMeta();rKPIs();rDaily();rPie();rTests();rTestHistory();rAuth();rTasks();rPVA();rTimePie();rTaskComp();rGantt();rLog();rMeetings()}
 
 function rMeta(){
   const dl=new Date(D.config.deadline),days=Math.max(0,Math.ceil((dl-new Date())/864e5));
@@ -520,6 +536,100 @@ function rPie(){
 function getTestPasses(){try{return JSON.parse(localStorage.getItem('test_passes')||'{}')}catch{return{}}}
 function saveTestPasses(p){localStorage.setItem('test_passes',JSON.stringify(p))}
 
+// ─── TEST HISTORY ───
+function getTestHistory(){try{return JSON.parse(localStorage.getItem('test_history')||'[]')}catch{return[]}}
+function saveTestHistory(h){localStorage.setItem('test_history',JSON.stringify(h))}
+
+function recordTestSnapshot(){
+  const passes=getTestPasses();
+  const cats=D.test_categories||{};
+  const total=Object.values(cats).reduce((a,v)=>a+v,0);
+  const passing=Object.entries(cats).reduce((sum,[c,n])=>sum+Math.min(passes[c]||0,n),0);
+  const today=new Date().toISOString().slice(0,10);
+  const h=getTestHistory();
+  // snapshot: categories stored as-is (clamped to max)
+  const snap={date:today,total,passing,categories:Object.fromEntries(Object.entries(cats).map(([c,n])=>[c,Math.min(passes[c]||0,n)]))};
+  const idx=h.findIndex(e=>e.date===today);
+  if(idx>=0)h[idx]=snap; else h.push(snap);
+  h.sort((a,b)=>a.date.localeCompare(b.date));
+  saveTestHistory(h);
+}
+
+function clearTestHistory(){if(confirm('Clear all test history? This cannot be undone.')){saveTestHistory([]);rTestHistory();}}
+
+function exportTestHistory(){
+  const h=getTestHistory();
+  if(!h.length)return;
+  const cats=Object.keys(h[0].categories||{}).sort();
+  const header=['date','passing','total',...cats].join(',');
+  const rows=h.map(e=>[e.date,e.passing,e.total,...cats.map(c=>e.categories[c]??0)].join(','));
+  const blob=new Blob([[header,...rows].join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='test_history.csv';a.click();
+}
+
+let _chartTestHistory=null;
+function rTestHistory(){
+  const h=getTestHistory();
+  const ctx=document.getElementById('cTestHistory').getContext('2d');
+  if(_chartTestHistory){_chartTestHistory.destroy();_chartTestHistory=null;}
+
+  if(!h.length){
+    document.getElementById('testHistoryTable').innerHTML=`<div style="font-family:var(--mono);font-size:.72rem;color:var(--dim);text-align:center;padding:1rem 0">No history yet — update test counts above to record today's snapshot.</div>`;
+    return;
+  }
+
+  const labels=h.map(e=>{const d=new Date(e.date+'T12:00:00');return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});});
+  const passing=h.map(e=>e.passing);
+  const total=h[0].total||86;
+
+  _chartTestHistory=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Passing',data:passing,borderColor:C.green,backgroundColor:C.green+'22',fill:true,tension:.3,pointRadius:4,pointHoverRadius:6},
+        {label:'Total',data:h.map(()=>total),borderColor:C.dim+'55',borderDash:[4,4],pointRadius:0,fill:false}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:true,labels:{color:'var(--tx)',font:{family:'IBM Plex Mono',size:11}}},tooltip:{callbacks:{
+        afterBody:function(items){
+          const i=items[0].dataIndex;
+          const snap=h[i];
+          if(!snap||!snap.categories)return'';
+          const cats=Object.entries(snap.categories).sort((a,b)=>a[0].localeCompare(b[0]));
+          return'\n'+cats.map(([c,v])=>{const max=snap.total;return`  ${c.padEnd(14)} ${v}/${(D.test_categories||{})[c]||'?'}`;}).join('\n');
+        }
+      }}},
+      scales:{y:{min:0,max:total,ticks:{color:'var(--dim)',font:{family:'IBM Plex Mono',size:10}},grid:{color:'var(--bd)'}},x:{ticks:{color:'var(--dim)',font:{family:'IBM Plex Mono',size:10}},grid:{color:'var(--bd)'}}}
+    }
+  });
+
+  // Detail table: each row = a day, columns = categories
+  const allCats=Object.keys((h[h.length-1]||{}).categories||{}).sort();
+  const thStyle='font-family:var(--mono);font-size:.62rem;color:var(--dim);padding:.2rem .4rem;text-align:center;border-bottom:1px solid var(--bd)';
+  const tdStyle='font-family:var(--mono);font-size:.62rem;padding:.2rem .35rem;text-align:center;border-bottom:1px solid var(--bd)22';
+  const head=`<thead><tr><th style="${thStyle};text-align:left">Date</th><th style="${thStyle}">Total</th>${allCats.map(c=>`<th style="${thStyle}">${c}</th>`).join('')}</tr></thead>`;
+  const body=`<tbody>${[...h].reverse().map(e=>{
+    const prevIdx=h.indexOf(e)-1;
+    const prev=prevIdx>=0?h[prevIdx]:null;
+    const delta=prev!==null?e.passing-prev.passing:null;
+    const deltaStr=delta===null?'':(delta>0?`<span style="color:${C.green}"> +${delta}</span>`:delta<0?`<span style="color:${C.red}"> ${delta}</span>`:'');
+    return`<tr><td style="${tdStyle};text-align:left;color:var(--tx)">${e.date}</td>`+
+      `<td style="${tdStyle};font-weight:600;color:${e.passing===e.total?C.green:e.passing>0?C.orange:C.red}">${e.passing}${deltaStr}</td>`+
+      allCats.map(c=>{
+        const v=e.categories[c]??0;
+        const max=(D.test_categories||{})[c]||0;
+        const pv=prev?(prev.categories[c]??0):null;
+        const changed=pv!==null&&v!==pv;
+        const col=v===max?C.green:v>0?C.orange:C.red;
+        return`<td style="${tdStyle};color:${col}${changed?';font-weight:700':''}">${v}/${max}</td>`;
+      }).join('')+`</tr>`;
+  }).join('')}</tbody>`;
+  document.getElementById('testHistoryTable').innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${head}${body}</table></div>`;
+}
+
 function rTests(){
   const cats=D.test_categories,s=Object.entries(cats).sort((a,b)=>a[0].localeCompare(b[0]));
   const passes=getTestPasses();
@@ -559,8 +669,10 @@ function updateTestPass(cat,val,max){
   const passes=getTestPasses();
   passes[cat]=Math.max(0,Math.min(parseInt(val)||0,max));
   saveTestPasses(passes);
+  recordTestSnapshot();
   rTests();
   rKPIs();
+  rTestHistory();
 }
 
 // ─── AUTHORS ───
