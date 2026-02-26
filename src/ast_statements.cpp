@@ -44,7 +44,9 @@ void WhileStatement::EmitRISC(std::ostream& stream, Context& context) const {
   stream << ".Lwhile_" << label << ":\n";
   condition_->EmitRISC(stream, context);  // result going to a5
   stream << "beqz    a5, .Lend_" << label << "\n";
-  body_->EmitRISC(stream, context);
+  if (body_ != nullptr) {
+    body_->EmitRISC(stream, context);
+  }
   stream << "j       .Lwhile_" << label << "\n";
   stream << ".Lend_" << label << ":\n";
 }
@@ -53,7 +55,9 @@ void WhileStatement::Print(std::ostream& stream) const {
   stream << "while (";
   condition_->Print(stream);
   stream << ") {\n";
-  body_->Print(stream);
+  if (body_ != nullptr) {
+    body_->Print(stream);
+  }
   stream << "}\n";
 }
 

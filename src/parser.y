@@ -146,12 +146,14 @@ iteration_statement
 statement
 	: jump_statement { $$ = $1; }
 	| expression_statement { $$ = $1; } //ie x=10; ex_st vs x=10 just an ex
+	| compound_statement { $$ = $1; }
 	| selection_statement { $$ = $1;}
 	| iteration_statement { $$ = $1; }
 	;
 
 compound_statement
 	: '{' statement_list '}' { $$ = $2; }
+	| '{' '}' { $$ = nullptr; }
 	;
 
 statement_list
