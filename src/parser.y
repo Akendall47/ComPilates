@@ -140,6 +140,9 @@ iteration_statement
 	: WHILE '(' expression ')' statement{
 		$$ = new WhileStatement(NodePtr($3), NodePtr($5));
 	}
+	| FOR '(' expression ';' expression ';' expression ')' statement {
+		$$ = new ForStatement(NodePtr($3), NodePtr($5), NodePtr($7), NodePtr($9));
+	}
 	;
 
 //ie if (1)

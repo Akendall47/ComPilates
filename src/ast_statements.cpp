@@ -61,4 +61,47 @@ void WhileStatement::Print(std::ostream& stream) const {
   stream << "}\n";
 }
 
+// FOR
+
+void ForStatement::EmitRISC(std::ostream& stream, Context& context) const {
+  int label = context.AllocateLabel();
+
+  // eg. x=0, run once
+  if (init_ != nullptr) {
+    init_->EmitRISC(stream, context);
+  }
+
+  stream << ".Lfor_" << label << ":\n";
+
+  // condition: result in a5; beqz a5==0 , exits loop if false (0)
+  if (condition_ != nullptr) {  // eg for(;;) - infinite
+    condition_->EmitRISC(stream, context);
+    stream << "beqz    a5, .Lend_" << label << "\n";
+  }
+
+  if (body_ != nullptr) {
+    body_->EmitRISC(stream, context);
+  }
+
+  // eg  x=x+1
+  if (update_ != nullptr) {
+    update_->EmitRISC(stream, context);
+  }
+
+  stream << "j       .Lfor_" << label << "\n";
+  stream << ".Lend_" << label << ":\n";
+}
+
+void ForStatement::Print(std::ostream& stream) const {
+  stream << "for (";
+  if (init_ != nullptr) init_->Print(stream);
+  stream << "; ";
+  if (condition_ != nullptr) condition_->Print(stream);
+  stream << "; ";
+  if (update_ != nullptr) update_->Print(stream);
+  stream << ") {\n";
+  if (body_ != nullptr) body_->Print(stream);
+  stream << "}\n";
+}
+
 }  // namespace ast
