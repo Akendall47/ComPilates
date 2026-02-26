@@ -45,7 +45,7 @@
 %type <node> equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
 %type <node> parameter_list parameter_declaration declaration
-%type <node> expression_statement
+%type <node> expression_statement selection_statement iteration_statement
 
 
 %type <node_list> statement_list
@@ -127,9 +127,27 @@ expression_statement
 	: expression ';' { $$ = $1; }
 	;
 
+selection_statement
+	: IF '(' expression ')' statement{
+		$$ = new IfStatement(NodePtr($3), NodePtr($5), nullptr);
+	}
+	| IF '(' expression ')' statement ELSE statement {
+		$$ = new IfStatement(NodePtr($3), NodePtr($5), NodePtr($7));
+	}
+	;
+
+iteration_statement
+	: WHILE '(' expression ')' statement{
+		$$ = new WhileStatement(NodePtr($3), NodePtr($5));
+	}
+	;
+
+//ie if (1)
 statement
 	: jump_statement { $$ = $1; }
-	| expression_statement { $$ = $1; }
+	| expression_statement { $$ = $1; } //ie x=10; ex_st vs x=10 just an ex
+	| selection_statement { $$ = $1;}
+	| iteration_statement { $$ = $1; }
 	;
 
 compound_statement
