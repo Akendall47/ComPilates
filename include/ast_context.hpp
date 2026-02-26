@@ -16,6 +16,10 @@ class Context {
   // basic symbol table for now; maps variable name to offset from s0
   std::unordered_map<std::string, int> locals;
 
+  // label counter for control flow
+  int label_count = 0;
+  int AllocateLabel() { return label_count++; }
+
   // allocate next stack slot, returns its offset from s0
   int AllocateLocal(const std::string& name) {
     int offset = -(int)((locals.size() + 1) * 4 + 8);
@@ -27,11 +31,14 @@ class Context {
   /*confirmed with GodBolt*/
 
   // grow stack, save return address, save old frame ptr, set fp to top
+  // 16 byte aligned remember; init to 16: ra; 4bytes, s0: 4 bytes, -> align to
+  // 16
+
   void EmitPrologue(std::ostream& stream) const {
-    stream << "addi    sp, sp, -" << stack_frame_size << "\n";
+    stream << "addi    sp, sp, -" << stack_frame_size << "\n";  // new bottom
     stream << "sw      ra, " << (stack_frame_size - 4) << "(sp)\n";
     stream << "sw      s0, " << (stack_frame_size - 8) << "(sp)\n";
-    stream << "addi    s0, sp, " << stack_frame_size << "\n";
+    stream << "addi    s0, sp, " << stack_frame_size << "\n";  // new s0 to top
   }
 
   // restore return addr, restore old fp, shrink stack, can then jump
