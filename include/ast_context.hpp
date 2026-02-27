@@ -20,11 +20,16 @@ class Context {
   int label_count = 0;
   int AllocateLabel() { return label_count++; }
 
-  // allocate next stack slot, returns its offset from s0
-  int AllocateLocal(const std::string& name) {
-    int offset = -(int)((locals.size() + 1) * 4 + 8);
-    locals[name] = offset;
-    return offset;
+  // tracks next free byte offset from s0; starts just below saved ra/s0
+  // (-8 = two 4-byte save slots: ra at -4, s0 at -8)
+  int next_local_offset = -8;
+
+  // allocate stack space;; size_bytes=4 for scalar, N*4 for array x[N] of ints
+  // returns the base offset (lowest address) of the allocated region
+  int AllocateLocal(const std::string& name, int size_bytes = 4) {
+    next_local_offset -= size_bytes;
+    locals[name] = next_local_offset;
+    return next_local_offset;
   }
 
   // ostream base class, so method works with any of its derivatives
