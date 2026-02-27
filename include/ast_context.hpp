@@ -13,6 +13,12 @@ class Context {
   std::string current_function;
   int stack_frame_size = 16;
 
+  // Global labels for assembly (slightly different to archie hope no conflicts....)
+  mutable int label_counter = 0;
+  std::string MakeLabel(const std::string& prefix) {
+    return "." + prefix + "_" + std::to_string(label_counter++);
+  }
+
   // basic symbol table for now; maps variable name to offset from s0
   std::unordered_map<std::string, int> locals;
 
