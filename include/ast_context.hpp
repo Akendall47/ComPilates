@@ -16,7 +16,7 @@ class Context {
   // basic symbol table for now; maps variable name to offset from s0
   std::unordered_map<std::string, int> locals;
 
-  // label counter for control flow
+  // label counter for control flow; returns unique int eg .Lend_0, .Lfor_1
   int label_count = 0;
   int AllocateLabel() { return label_count++; }
 

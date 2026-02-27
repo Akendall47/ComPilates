@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ast_assignment.hpp"
+#include "ast_operations.hpp"
 #include "ast_constant.hpp"
 #include "ast_context.hpp"
 #include "ast_declaration.hpp"

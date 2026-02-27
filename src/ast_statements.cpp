@@ -10,13 +10,13 @@ void IfStatement::EmitRISC(std::ostream& stream, Context& context) const {
   condition_->EmitRISC(stream, context);
 
   if (else_ != nullptr) {
-    stream << "beqz    a5, .Lelse_" << label << "\n";
+    stream << "beqz    a0, .Lelse_" << label << "\n";
     then_->EmitRISC(stream, context);
     stream << "j       .Lend_" << label << "\n";
     stream << ".Lelse_" << label << ":\n";
     else_->EmitRISC(stream, context);
   } else {
-    stream << "beqz    a5, .Lend_" << label << "\n";
+    stream << "beqz    a0, .Lend_" << label << "\n";
     then_->EmitRISC(stream, context);
   }
   stream << ".Lend_" << label << ":\n";
@@ -42,8 +42,8 @@ void WhileStatement::EmitRISC(std::ostream& stream, Context& context) const {
   int label = context.AllocateLabel();
 
   stream << ".Lwhile_" << label << ":\n";
-  condition_->EmitRISC(stream, context);  // result going to a5
-  stream << "beqz    a5, .Lend_" << label << "\n";
+  condition_->EmitRISC(stream, context);  // result in a0
+  stream << "beqz    a0, .Lend_" << label << "\n";
   if (body_ != nullptr) {
     body_->EmitRISC(stream, context);
   }
@@ -73,10 +73,10 @@ void ForStatement::EmitRISC(std::ostream& stream, Context& context) const {
 
   stream << ".Lfor_" << label << ":\n";
 
-  // condition: result in a5; beqz a5==0 , exits loop if false (0)
+  // condition: result in a0; beqz a0==0 , exits loop if false (0)
   if (condition_ != nullptr) {  // eg for(;;) - infinite
     condition_->EmitRISC(stream, context);
-    stream << "beqz    a5, .Lend_" << label << "\n";
+    stream << "beqz    a0, .Lend_" << label << "\n";
   }
 
   if (body_ != nullptr) {

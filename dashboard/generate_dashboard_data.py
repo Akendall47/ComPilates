@@ -207,7 +207,7 @@ def load_tasks():
             task.pop("project_id", None)
             tasks.append(task)
 
-        tasks.sort(key=lambda t: t.get("id", ""))
+        tasks.sort(key=lambda t: t.get("id", ""), reverse=True)
         print(f"  Loaded {len(tasks)} tasks from DynamoDB ({DYNAMODB_TABLE})")
         return tasks
 
@@ -217,7 +217,9 @@ def load_tasks():
             tp = os.path.join(repo_root(), candidate)
             if os.path.exists(tp):
                 with open(tp) as f:
-                    return json.load(f).get("tasks", [])
+                    tasks = json.load(f).get("tasks", [])
+                    tasks.sort(key=lambda t: t.get("id", ""), reverse=True)
+                    return tasks
         return []
 
 def main():

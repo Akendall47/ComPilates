@@ -44,11 +44,11 @@
 %type <node> unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression
 %type <node> equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
-%type <node> parameter_list parameter_declaration declaration
+%type <node> parameter_declaration declaration
 %type <node> expression_statement selection_statement iteration_statement
 
 
-%type <node_list> statement_list
+%type <node_list> statement_list parameter_list
 
 %type <number_int> INT_CONSTANT STRING_LITERAL
 %type <number_float> FLOAT_CONSTANT
@@ -99,19 +99,24 @@ direct_declarator
 		$$ = new DirectDeclarator(NodePtr($1));
 	}
 	| direct_declarator '(' parameter_list ')'{
-		$$ = new DirectDeclarator(NodePtr($1));
-		delete $3;  // params parsed but discarded for now
+		$$ = new DirectDeclarator(NodePtr($1), NodePtr($3));
 	}
 	;
 
 parameter_list
-	: parameter_declaration { $$ = $1; }
-	| parameter_list ',' parameter_declaration { $$ = $1; delete $3; }  // free discarded param node
+	: parameter_declaration { $$ = new NodeList(NodePtr($1)); }
+	| parameter_list ',' parameter_declaration { $1->PushBack(NodePtr($3)); $$ = $1; }
 	;
 
 //reminder eg: "int x" - $1=type, $2=name, return name node
+
+// I fixed reminder by making GetName to return node name
 parameter_declaration
-	: declaration_specifiers declarator { $$ = $2; }
+	: declaration_specifiers declarator {
+		Identifier* id = dynamic_cast<Identifier*>($2);
+		$$ = new Declaration($1, id->GetName());
+		delete $2;
+	}
 	;
 
 declaration
@@ -191,6 +196,9 @@ postfix_expression
 
 unary_expression
 	: postfix_expression
+	| '-' cast_expression { $$ = new UnaryOp("-", NodePtr($2)); }
+	| '~' cast_expression { $$ = new UnaryOp("~", NodePtr($2)); }
+	| '!' cast_expression { $$ = new UnaryOp("!", NodePtr($2)); }
 	;
 
 cast_expression
@@ -199,42 +207,60 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression
+	| multiplicative_expression '*' cast_expression { $$ = new BinaryOp(NodePtr($1), "*", NodePtr($3)); }
+	| multiplicative_expression '/' cast_expression { $$ = new BinaryOp(NodePtr($1), "/", NodePtr($3)); }
+	| multiplicative_expression '%' cast_expression { $$ = new BinaryOp(NodePtr($1), "%", NodePtr($3)); }
 	;
 
 additive_expression
 	: multiplicative_expression
+	| additive_expression '+' multiplicative_expression { $$ = new BinaryOp(NodePtr($1), "+", NodePtr($3)); }
+	| additive_expression '-' multiplicative_expression { $$ = new BinaryOp(NodePtr($1), "-", NodePtr($3)); }
 	;
 
 shift_expression
 	: additive_expression
+	| shift_expression LEFT_OP additive_expression { $$ = new BinaryOp(NodePtr($1), "<<", NodePtr($3)); }
+	| shift_expression RIGHT_OP additive_expression { $$ = new BinaryOp(NodePtr($1), ">>", NodePtr($3)); }
 	;
 
 relational_expression
 	: shift_expression
+	| relational_expression '<' shift_expression { $$ = new BinaryOp(NodePtr($1), "<", NodePtr($3)); }
+	| relational_expression '>' shift_expression { $$ = new BinaryOp(NodePtr($1), ">", NodePtr($3)); }
+	| relational_expression LE_OP shift_expression { $$ = new BinaryOp(NodePtr($1), "<=", NodePtr($3)); }
+	| relational_expression GE_OP shift_expression { $$ = new BinaryOp(NodePtr($1), ">=", NodePtr($3)); }
 	;
 
 equality_expression
 	: relational_expression
+	| equality_expression EQ_OP relational_expression { $$ = new BinaryOp(NodePtr($1), "==", NodePtr($3)); }
+	| equality_expression NE_OP relational_expression { $$ = new BinaryOp(NodePtr($1), "!=", NodePtr($3)); }
 	;
 
 and_expression
 	: equality_expression
+	| and_expression '&' equality_expression { $$ = new BinaryOp(NodePtr($1), "&", NodePtr($3)); }
 	;
 
 exclusive_or_expression
 	: and_expression
+	| exclusive_or_expression '^' and_expression { $$ = new BinaryOp(NodePtr($1), "^", NodePtr($3)); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = new BinaryOp(NodePtr($1), "|", NodePtr($3)); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = new BinaryOp(NodePtr($1), "&&", NodePtr($3)); }
 	;
 
 logical_or_expression
 	: logical_and_expression
+	| logical_or_expression OR_OP logical_and_expression { $$ = new BinaryOp(NodePtr($1), "||", NodePtr($3)); }
 	;
 
 conditional_expression

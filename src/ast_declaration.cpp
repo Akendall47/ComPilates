@@ -9,7 +9,7 @@ void Declaration::EmitRISC(std::ostream&, Context& context) const {
 }
 
 void Declaration::Print(std::ostream& stream) const {
-  stream << type_ << " " << name_ << ";" << std::endl;
+  stream << type_ << " " << name_ << ";" << "\n";
 }
 
 }  // namespace ast
