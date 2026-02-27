@@ -11,7 +11,7 @@ This document tracks our plan to implement proper register allocation.
 ---
 
 **Possible Allocator Stages**
-(nice-to-haves, implement as far as we get)
+(nice-to-haves, implement as far as we get )
 
 - current: stack spill; Every local lives at a fixed `s0`-relative offset; `a5` hardcoded as the one scratch register.
 
