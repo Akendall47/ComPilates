@@ -16,6 +16,8 @@ class Declaration : public Node {
 
   // prepass;  this node is a declaration, so count as 1
   int CountDeclarations() const override { return 1; }
+  const std::string& GetName() const { return name_; }
+
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
 };

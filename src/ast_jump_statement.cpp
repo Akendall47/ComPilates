@@ -4,11 +4,12 @@ namespace ast {
 
 void ReturnStatement::EmitRISC(std::ostream& stream, Context& context) const {
   if (expression_ != nullptr) {
-    expression_->EmitRISC(stream, context);  // result lands in a5
-    stream << "mv      a0, a5\n";            // move to return reg
+    expression_->EmitRISC(stream, context);  // result is already in a0
   }
+  // Rewrote some return code to fix it to a0 rather than a5 
+
   context.EmitEpilogue(stream);
-  stream << "ret\n";  // epilogue completes, jump back to caller via ra
+  stream << "ret" <<std::endl;  // epilogue completes, jump back to caller via ra
 }
 
 void ReturnStatement::Print(std::ostream& stream) const {

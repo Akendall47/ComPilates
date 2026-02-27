@@ -44,11 +44,11 @@
 %type <node> unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression
 %type <node> equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
-%type <node> parameter_list parameter_declaration declaration
+%type <node> parameter_declaration declaration
 %type <node> expression_statement
 
 
-%type <node_list> statement_list
+%type <node_list> statement_list parameter_list
 
 %type <number_int> INT_CONSTANT STRING_LITERAL
 %type <number_float> FLOAT_CONSTANT
@@ -99,19 +99,24 @@ direct_declarator
 		$$ = new DirectDeclarator(NodePtr($1));
 	}
 	| direct_declarator '(' parameter_list ')'{
-		$$ = new DirectDeclarator(NodePtr($1));
-		delete $3;  // params parsed but discarded for now
+		$$ = new DirectDeclarator(NodePtr($1), NodePtr($3));
 	}
 	;
 
 parameter_list
-	: parameter_declaration { $$ = $1; }
-	| parameter_list ',' parameter_declaration { $$ = $1; delete $3; }  // free discarded param node
+	: parameter_declaration { $$ = new NodeList(NodePtr($1)); }
+	| parameter_list ',' parameter_declaration { $1->PushBack(NodePtr($3)); $$ = $1; }
 	;
 
 //reminder eg: "int x" - $1=type, $2=name, return name node
+
+// I fixed reminder by making GetName to return node name
 parameter_declaration
-	: declaration_specifiers declarator { $$ = $2; }
+	: declaration_specifiers declarator {
+		Identifier* id = dynamic_cast<Identifier*>($2);
+		$$ = new Declaration($1, id->GetName());
+		delete $2;
+	}
 	;
 
 declaration
