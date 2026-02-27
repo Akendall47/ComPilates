@@ -712,7 +712,7 @@ function setAssigneeFilter(a){_assigneeFilter=a;document.querySelectorAll('[data
 function assigneeColor(a){if(a==='Archie')return C.blue;if(a==='SAMOS-76'||a==='SAMOS')return C.purple;return C.dim;}
 
 function rTasks(){
-  const allTasks=D.tasks||[];
+  const allTasks=(D.tasks||[]).slice().sort((a,b)=>b.id.localeCompare(a.id));
   buildCatFilters();
 
   // apply filters
