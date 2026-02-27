@@ -21,6 +21,8 @@
 %define parse.error detailed
 %define parse.lac full
 
+//lexer-parser bridge
+//eg yylval.string lives in string field as temp spot
 %union {
   Node*				    node;
   NodeList*			  node_list;
@@ -192,6 +194,8 @@ primary_expression
 
 postfix_expression
 	: primary_expression
+	| postfix_expression INC_OP { $$ = new PostfixOp("++", NodePtr($1)); }
+	| postfix_expression DEC_OP { $$ = new PostfixOp("--", NodePtr($1)); }
 	;
 
 unary_expression

@@ -2,6 +2,31 @@
 
 #include <iostream>
 
+#include "ast_identifier.hpp"
+
+void PostfixOp::Print(std::ostream& stream) const {
+  operand_->Print(stream);
+  stream << op_;
+}
+
+// dynamic cast again; compiler only knows 'some' node not which, allow GetName
+// call
+// reachhes into vtable and see identifier, can then give it identifeir*, if no
+// throw
+// operand must be an lvalue identifier
+void PostfixOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
+  const auto& id = dynamic_cast<const ast::Identifier&>(*operand_);
+  int offset = context.locals.at(id.GetName());
+
+  stream << "lw      a0, " << offset << "(s0)\n";
+  if (op_ == "++") {
+    stream << "addi    a0, a0, 1\n";
+  } else {
+    stream << "addi    a0, a0, -1\n";
+  }
+  stream << "sw      a0, " << offset << "(s0)\n";
+}
+
 void UnaryOp::Print(std::ostream& stream) const {
   stream << "(" << op_ << " ";
   operand_->Print(stream);
@@ -63,7 +88,6 @@ void BinaryOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
     stream << ".Lor_end_" << label << ":\n";
     return;
   }
-
 
   left_->EmitRISC(stream, context);
 

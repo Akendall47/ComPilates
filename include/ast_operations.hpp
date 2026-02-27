@@ -30,3 +30,18 @@ class UnaryOp : public ast::Node {
   void EmitRISC(std::ostream& stream, ast::Context& context) const override;
   void Print(std::ostream& stream) const override;
 };
+
+// Posts:  x++, x--
+//  Operand must be an Identifier (lvalue). Loads, modifies, stores back.
+class PostfixOp : public ast::Node {
+ private:
+  ast::NodePtr operand_;
+  std::string op_;  // "++" or "--"
+
+ public:
+  PostfixOp(const std::string& op, ast::NodePtr operand)
+      : operand_(std::move(operand)), op_(op) {}
+
+  void EmitRISC(std::ostream& stream, ast::Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
