@@ -42,7 +42,7 @@
 %token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 %token UNKNOWN
 
-%type <node> translation_unit external_declaration function_definition primary_expression postfix_expression
+%type <node> external_declaration function_definition primary_expression postfix_expression
 %type <node> unary_expression cast_expression multiplicative_expression additive_expression shift_expression relational_expression
 %type <node> equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression logical_or_expression
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
@@ -50,7 +50,7 @@
 %type <node> expression_statement selection_statement iteration_statement
 
 
-%type <node_list> statement_list parameter_list argument_expression_list
+%type <node_list> statement_list parameter_list argument_expression_list translation_unit
 
 %type <number_int> INT_CONSTANT STRING_LITERAL
 %type <number_float> FLOAT_CONSTANT
@@ -65,11 +65,16 @@ ROOT
 	: translation_unit { g_root = $1; }
 
 translation_unit
-	: external_declaration { $$ = $1; }
+	: external_declaration { $$ = new NodeList(NodePtr($1)); }
+  | translation_unit external_declaration {
+      $1->PushBack(NodePtr($2));
+      $$ = $1;
+  }
 	;
 
 external_declaration
 	: function_definition { $$ = $1; }
+  | declaration { $$ = $1; }
 	;
 
 function_definition
@@ -124,8 +129,14 @@ parameter_declaration
 declaration
 	: declaration_specifiers declarator ';' {
 		//static cast may be more effieicent, but less safe, especially as we groww
-		Identifier* id = dynamic_cast<Identifier*>($2);
-		$$ = new Declaration($1, id->GetName());
+
+    // Fixing bug where it takes functon parameters as declarations (sees int functoin () and groups brackerts as declaration)
+
+		if (Identifier* id = dynamic_cast<Identifier*>($2)){
+      $$ = new Declaration($1, id->GetName());
+    }else{
+      $$ = nullptr; // Don't make declaraton if function parameters
+    }
 		delete $2;
 	}
 	;
