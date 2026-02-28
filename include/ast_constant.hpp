@@ -11,6 +11,8 @@ class IntConstant : public Node {
  public:
   IntConstant(int value) : value_(value) {}
 
+  int GetValue() const { return value_; }
+
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
 };

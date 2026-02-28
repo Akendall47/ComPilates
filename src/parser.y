@@ -128,6 +128,11 @@ declaration
 		$$ = new Declaration($1, id->GetName());
 		delete $2;
 	}
+	| declaration_specifiers IDENTIFIER '[' INT_CONSTANT ']' ';' {
+		// int x[8]; ArrayDeclaration(INT, "x", 8)
+		$$ = new ArrayDeclaration($1, *$2, $4);
+		delete $2;
+	}
 	;
 
 expression_statement
@@ -194,6 +199,12 @@ primary_expression
 
 postfix_expression
 	: primary_expression
+	| postfix_expression '[' expression ']' {
+		// x[i] rvalue; extract name from Identifier, build array subscript
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new ArraySubscript(id->GetName(), NodePtr($3));
+		delete $1;
+	}
 	| postfix_expression INC_OP { $$ = new PostfixOp("++", NodePtr($1)); }
 	| postfix_expression DEC_OP { $$ = new PostfixOp("--", NodePtr($1)); }
 	;
@@ -275,9 +286,14 @@ assignment_expression
 	: conditional_expression
 	| unary_expression '=' assignment_expression {
 		// extract name from lhs Identifier, build Assignment node owning rhs
-
 		Identifier* id = dynamic_cast<Identifier*>($1);
 		$$ = new Assignment(id->GetName(), NodePtr($3));
+		delete $1;
+	}
+	| postfix_expression '[' expression ']' '=' assignment_expression {
+		// x[i] = rhs: extract name, build array assingment
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new ArrayAssignment(id->GetName(), NodePtr($3), NodePtr($6));
 		delete $1;
 	}
 	;
