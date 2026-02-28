@@ -3,6 +3,7 @@
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace ast {
 // An object of class Context is passed between ast nodes during compilation.
@@ -15,6 +16,11 @@ class Context {
 
   // basic symbol table for now; maps variable name to offset from s0
   std::unordered_map<std::string, int> locals;
+
+  // global arrays declared at file scope; so we need to use lui/addi %hi/%lo
+  // addressing just track global membership
+  std::unordered_set<std::string> globals;
+  void RegisterGlobal(const std::string& name) { globals.insert(name); }
 
   // label counter for control flow; returns unique int eg .Lend_0, .Lfor_1
   int label_count = 0;

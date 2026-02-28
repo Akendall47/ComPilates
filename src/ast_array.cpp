@@ -4,9 +4,20 @@
 
 namespace ast {
 
-// reserve n*4 bytes on stack
-void ArrayDeclaration::EmitRISC(std::ostream&, Context& context) const {
-  context.AllocateLocal(name_, array_size_ * 4);
+// global; emit .bss/.space   local; reserve stack space
+// if current func empty its globabl, not inside anything, top delcaration
+//.align 2 == 2^2 bytes aligned.; sw/lw addrs need 4 bytes aligned
+void ArrayDeclaration::EmitRISC(std::ostream& stream, Context& context) const {
+  if (context.current_function.empty()) {
+    context.RegisterGlobal(name_);
+    stream << ".bss\n";
+    stream << ".globl " << name_ << "\n";
+    stream << ".align 2\n";
+    stream << name_ << ":\n";
+    stream << "    .space " << (array_size_ * 4) << "\n";
+  } else {
+    context.AllocateLocal(name_, array_size_ * 4);
+  }
 }
 
 void ArrayDeclaration::Print(std::ostream& stream) const {
@@ -14,23 +25,42 @@ void ArrayDeclaration::Print(std::ostream& stream) const {
 }
 
 // compute abs addr of x[i] into t2
-//  fast path, const index folds offset at compile time, 1 instr
+//  fast path, const index folds offset at compile time
+// ie is it atcually just an IntConst
 //  general path: evaluate index at runtime, 3 instrS
 static void EmitArrayAddress(std::ostream& stream, Context& context,
                              const std::string& name, const Node& index) {
-  int base = context.locals.at(name);
+  if (context.globals.count(name)) {
+    // global; load base addr via lui/addi %hi/%lo, then add index*4
+    // lui; only way too set set [31:12] + addi to set final 12 (its constarined
+    // to 12 anyways)
+    // with %hi(x); gives 31;12      %low gives 11;0
+    //// const index; fold element offset into %lo at compile time isnt safe
+    //// (linker fills %lo, can't add to it), so use runtime path even for const
 
-  // constant index check: eg. x[0], find final offset at compile time
-  // eg. -44 + 0*4 = -44
-  // otherwise fall through via nullptr
-  // optimised as we do CPP arithemtic not RISCV
+    if (auto* c = dynamic_cast<const IntConstant*>(&index)) {
+      stream << "lui     t2, %hi(" << name << ")\n";
+      stream << "addi    t2, t2, %lo(" << name << ")\n";
+      int byte_off = c->GetValue() * 4;
+      if (byte_off != 0) stream << "addi    t2, t2, " << byte_off << "\n";
+      return;
+    }
+
+    index.EmitRISC(stream, context);  // index in a0
+    stream << "slli    a0, a0, 2\n";
+    stream << "lui     t2, %hi(" << name << ")\n";
+    stream << "addi    t2, t2, %lo(" << name << ")\n";
+    stream << "add     t2, t2, a0\n";
+    return;
+  }
+
+  // local: s0-relative addressing
+  int base = context.locals.at(name);
   if (auto* c = dynamic_cast<const IntConstant*>(&index)) {
     int offset = base + c->GetValue() * 4;
     stream << "addi    t2, s0, " << offset << "\n";
     return;
   }
-
-  // index*4; offset from s0; absolute addr, nut just s0 relative
   index.EmitRISC(stream, context);
   stream << "slli    t2, a0, 2\n";
   stream << "addi    t2, t2, " << base << "\n";
