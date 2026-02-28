@@ -50,7 +50,7 @@
 %type <node> expression_statement selection_statement iteration_statement
 
 
-%type <node_list> statement_list parameter_list
+%type <node_list> statement_list parameter_list argument_expression_list
 
 %type <number_int> INT_CONSTANT STRING_LITERAL
 %type <number_float> FLOAT_CONSTANT
@@ -192,11 +192,32 @@ primary_expression
 	}
 	;
 
+
 postfix_expression
-	: primary_expression
-	| postfix_expression INC_OP { $$ = new PostfixOp("++", NodePtr($1)); }
-	| postfix_expression DEC_OP { $$ = new PostfixOp("--", NodePtr($1)); }
-	;
+  : primary_expression { $$ = $1; }
+  | postfix_expression '(' ')' {
+      // Function call with no arguments
+      Identifier* id = dynamic_cast<Identifier*>($1);
+      $$ = new FunctionCall(id->GetName(), nullptr);
+      delete $1;
+  }
+  | postfix_expression '(' argument_expression_list ')' {
+      // Function call with arguments
+      Identifier* id = dynamic_cast<Identifier*>($1);
+      $$ = new FunctionCall(id->GetName(), NodePtr($3));
+      delete $1;
+  }
+  | postfix_expression INC_OP { $$ = new PostfixOp("++", NodePtr($1)); }
+  | postfix_expression DEC_OP { $$ = new PostfixOp("--", NodePtr($1)); }
+  ;
+
+argument_expression_list
+    : assignment_expression { $$ = new NodeList(NodePtr($1)); }
+    | argument_expression_list ',' assignment_expression {
+        $1->PushBack(NodePtr($3));
+        $$ = $1;
+    }
+    ;
 
 unary_expression
 	: postfix_expression

@@ -13,6 +13,7 @@
 #include "ast_function_definition.hpp"
 #include "ast_identifier.hpp"
 #include "ast_jump_statement.hpp"
+#include "ast_function_call.hpp"
 #include "ast_node.hpp"
 #include "ast_statements.hpp"
 #include "ast_type_specifier.hpp"

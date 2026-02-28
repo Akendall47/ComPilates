@@ -7,6 +7,11 @@ namespace ast {
 
 void FunctionDefinition::EmitRISC(std::ostream& stream,
                                   Context& context) const {
+
+  // If function is empty output nothing and return
+  if (compound_statement_ == nullptr){
+    return;
+  }
   // extract func name via GetName() — declarator_ is always a DirectDeclarator
   auto& dd = dynamic_cast<const DirectDeclarator&>(*declarator_);
   context.current_function = dd.GetName();
@@ -45,7 +50,6 @@ void FunctionDefinition::EmitRISC(std::ostream& stream,
       }
     }
   }
-
   if (compound_statement_ != nullptr) {
     compound_statement_->EmitRISC(stream, context);
   }
