@@ -17,4 +17,17 @@ class IntConstant : public Node {
   void Print(std::ostream& stream) const override;
 };
 
+class FloatConstant : public Node {
+ private:
+  double value_;
+
+ public:
+  FloatConstant(double value) : value_(value) {}
+
+  double GetValue() const { return value_; }
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
 }  // namespace ast

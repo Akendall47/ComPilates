@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include "ast_type_specifier.hpp"
 
 namespace ast {
 // An object of class Context is passed between ast nodes during compilation.
@@ -16,6 +17,7 @@ class Context {
 
   // basic symbol table for now; maps variable name to offset from s0
   std::unordered_map<std::string, int> locals;
+  std::unordered_map<std::string, TypeSpecifier> local_type; // Need to get the type of the variable as well
 
   // global arrays declared at file scope; so we need to use lui/addi %hi/%lo
   // addressing just track global membership
@@ -32,9 +34,11 @@ class Context {
 
   // allocate stack space;; size_bytes=4 for scalar, N*4 for array x[N] of ints
   // returns the base offset (lowest address) of the allocated region
-  int AllocateLocal(const std::string& name, int size_bytes = 4) {
-    next_local_offset -= size_bytes;
-    locals[name] = next_local_offset;
+  int AllocateLocal(const std::string& name, TypeSpecifier type) {
+    // Needed as just makes double and float easier
+    int offset = -(int)((locals.size() + 1) * 4 + 8);
+    locals[name] = offset;
+    local_type[name] = type;
     return next_local_offset;
   }
 
