@@ -9,6 +9,7 @@ void IntConstant::EmitRISC(std::ostream& stream, Context&) const {
 void IntConstant::Print(std::ostream& stream) const { stream << value_; }
   // namespace ast
 
+
 void FloatConstant::EmitRISC(std::ostream& stream, Context&) const {
   // Cannot directly store float so must convert into interger representation first
 
@@ -21,4 +22,7 @@ void FloatConstant::EmitRISC(std::ostream& stream, Context&) const {
 
 void FloatConstant::Print(std::ostream& stream) const { stream << value_; }
 
+
+TypeSpecifier FloatConstant::GetType(Context&) const { return TypeSpecifier::FLOAT; }
 }  // namespace ast
+

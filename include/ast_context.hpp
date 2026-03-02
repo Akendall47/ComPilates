@@ -32,13 +32,27 @@ class Context {
   // (-8 = two 4-byte save slots: ra at -4, s0 at -8)
   int next_local_offset = -8;
 
+  int GetTypeSize(TypeSpecifier type) {
+    switch(type) {
+        case TypeSpecifier::DOUBLE:
+            return 8;
+        default:
+            return 4; // Ints floats
+    }
+}
+
   // allocate stack space;; size_bytes=4 for scalar, N*4 for array x[N] of ints
   // returns the base offset (lowest address) of the allocated region
-  int AllocateLocal(const std::string& name, TypeSpecifier type) {
-    // Needed as just makes double and float easier
-    int offset = -(int)((locals.size() + 1) * 4 + 8);
-    locals[name] = offset;
+
+  // Assuming everything is an array of length 1 to simplify calcs
+  int AllocateLocal(const std::string& name, TypeSpecifier type, int array_length = 1) {
+    int element_size = GetTypeSize(type);
+    int total_size = element_size * array_length;
+    
+    next_local_offset -= total_size;
+    locals[name] = next_local_offset;
     local_type[name] = type;
+
     return next_local_offset;
   }
 

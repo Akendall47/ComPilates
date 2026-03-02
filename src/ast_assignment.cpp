@@ -11,14 +11,16 @@ void Assignment::EmitRISC(std::ostream& stream, Context& context) const {
   int offset = context.locals.at(lhs_name_);
   stream << "sw      a0, " << offset << "(s0)" <<std::endl;
 
-  TypeSpecifier type = context.local_types.at(identifier_);
+  TypeSpecifier type = context.local_type.at(lhs_name_);
 
-  if (type == FLOAT) {
+  if (type == TypeSpecifier::FLOAT) {
+
       stream << "  fsw fa0, " << offset << "(s0)\n";
-  } else if (type == DOUBLE) {
+  } else if (type == TypeSpecifier::DOUBLE) {
+
       stream << "  fsd fa0, " << offset << "(s0)\n";
   } else {
-      stream << "  lw a0, " << offset << "(s0)\n";
+      stream << "  sw a0, " << offset << "(s0)\n";
   }
 }
 

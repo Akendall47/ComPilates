@@ -4,6 +4,8 @@
 
 #include "ast_identifier.hpp"
 
+namespace ast {
+
 void PostfixOp::Print(std::ostream& stream) const {
   operand_->Print(stream);
   stream << op_;
@@ -14,8 +16,8 @@ void PostfixOp::Print(std::ostream& stream) const {
 // reachhes into vtable and see identifier, can then give it identifeir*, if no
 // throw
 // operand must be an lvalue identifier
-void PostfixOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
-  const auto& id = dynamic_cast<const ast::Identifier&>(*operand_);
+void PostfixOp::EmitRISC(std::ostream& stream, Context& context) const {
+  const auto& id = dynamic_cast<const Identifier&>(*operand_);
   int offset = context.locals.at(id.GetName());
 
   stream << "lw      a0, " << offset << "(s0)\n";
@@ -41,19 +43,28 @@ void BinaryOp::Print(std::ostream& stream) const {
   stream << ")";
 }
 
-void UnaryOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
+void UnaryOp::EmitRISC(std::ostream& stream, Context& context) const {
   operand_->EmitRISC(stream, context);
+  TypeSpecifier type = operand_->GetType(context);
 
-  if (op_ == "-") {
-    stream << "  neg a0, a0" << "\n";
-  } else if (op_ == "!") {
-    stream << "  seqz a0, a0" << "\n";
-  } else if (op_ == "~") {
-    stream << "  not a0, a0" << "\n";
+  if (type == TypeSpecifier::FLOAT) {
+      if (op_ == "-") { stream << "  fneg.s fa0, fa0\n"; }
+
+  }else if (type == TypeSpecifier::DOUBLE) {
+      if (op_ == "-") {
+          stream << "  fneg.d fa0, fa0\n";
+      }
+  }else {
+      if (op_ == "-") stream << "  neg a0, a0\n";
+      else if (op_ == "!") stream << "  seqz a0, a0\n";
+      else if (op_ == "~") stream << "  not a0, a0\n";
   }
 }
 
-void BinaryOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
+void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
+  TypeSpecifier left_type = left_->GetType(context);
+  TypeSpecifier op_type = this->GetType(context);
+
   // Short circuits
   if (op_ == "&&") {
     int label = context.AllocateLabel();
@@ -91,13 +102,25 @@ void BinaryOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
 
   left_->EmitRISC(stream, context);
 
-  stream << "  addi sp, sp, -4" << "\n";
-  stream << "  sw a0, 0(sp)" << "\n";
+  stream << "  addi sp, sp, -8\n"; // Just allocate max expected stack (double)
+  if (left_type == TypeSpecifier::FLOAT) {
+    stream << "  fsw fa0, 0(sp)\n";
+  }else if (left_type == TypeSpecifier::DOUBLE) {
+    stream << "  fsd fa0, 0(sp)\n";
+  }else {
+    stream << "  sw a0, 0(sp)\n";
+  }
 
   right_->EmitRISC(stream, context);
 
-  stream << "  lw t1, 0(sp)" << "\n";
-  stream << "  addi sp, sp, 4" << "\n";
+  if (left_type == TypeSpecifier::FLOAT) {
+    stream << "  flw ft1, 0(sp)\n";
+  } else if (left_type == TypeSpecifier::DOUBLE) {
+    stream << "  fld ft1, 0(sp)\n";
+  } else {
+    stream << "  lw t1, 0(sp)\n";
+  }
+  stream << "  addi sp, sp, 8\n";
 
   if (op_ == "+") {
     stream << "  add a0, t1, a0" << "\n";
@@ -139,4 +162,6 @@ void BinaryOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
     stream << "  sub t1, t1, a0" << "\n";
     stream << "  snez a0, t1" << "\n";
   }
+}
+
 }

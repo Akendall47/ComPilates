@@ -14,6 +14,7 @@ class Identifier : public Node {
   const std::string& GetName() const { return identifier_; }
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  virtual TypeSpecifier GetType(Context& context) const override;
 };
 
 }  // namespace ast
