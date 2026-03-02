@@ -18,7 +18,7 @@ void Identifier::EmitRISC(std::ostream& stream, Context& context) const {
   }
 }
 
-void Identifier::Print(std::ostream& stream) const { stream << identifier_; };
+void Identifier::Print(std::ostream& stream) const { stream << identifier_; }
 
 TypeSpecifier Identifier::GetType(Context& context) const { return context.local_type.at(identifier_); }
 

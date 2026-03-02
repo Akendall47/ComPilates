@@ -13,4 +13,6 @@ void Declaration::Print(std::ostream& stream) const {
   stream << type_ << " " << name_ << ";" << "\n";
 }
 
+TypeSpecifier Declaration::GetType(Context&) const { return type_; }
+
 }  // namespace ast

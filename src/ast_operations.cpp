@@ -122,7 +122,27 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
   }
   stream << "  addi sp, sp, 8\n";
 
-  if (op_ == "+") {
+  if (op_type == TypeSpecifier::FLOAT) {
+    if (op_ == "+") stream << "  fadd.s fa0, ft1, fa0\n";
+    else if (op_ == "-") stream << "  fsub.s fa0, ft1, fa0\n";
+    else if (op_ == "*") stream << "  fmul.s fa0, ft1, fa0\n";
+    else if (op_ == "/") stream << "  fdiv.s fa0, ft1, fa0\n";
+
+    else if (op_ == "<") stream << "  flt.s a0, ft1, fa0\n";
+    else if (op_ == "<=") stream << "  fle.s a0, ft1, fa0\n";
+    else if (op_ == "==") stream << "  feq.s a0, ft1, fa0\n";
+
+  } else if (op_type == TypeSpecifier::DOUBLE) {
+    if (op_ == "+") stream << "  fadd.d fa0, ft1, fa0\n";
+    else if (op_ == "-") stream << "  fsub.d fa0, ft1, fa0\n";
+    else if (op_ == "*") stream << "  fmul.d fa0, ft1, fa0\n";
+    else if (op_ == "/") stream << "  fdiv.d fa0, ft1, fa0\n";
+
+    else if (op_ == "<") stream << "  flt.d a0, ft1, fa0\n";
+    else if (op_ == "<=") stream << "  fle.d a0, ft1, fa0\n";
+    else if (op_ == "==") stream << "  feq.d a0, ft1, fa0\n";
+  }else{
+    if (op_ == "+") {
     stream << "  add a0, t1, a0" << "\n";
   } else if (op_ == "-") {
     stream << "  sub a0, t1, a0" << "\n";
@@ -162,6 +182,21 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
     stream << "  sub t1, t1, a0" << "\n";
     stream << "  snez a0, t1" << "\n";
   }
+  }
+
+}
+
+TypeSpecifier BinaryOp::GetType(Context& context) const {
+    TypeSpecifier left_type = left_->GetType(context);
+    TypeSpecifier right_type = right_->GetType(context);
+
+    // If either side is a double, the whole operation becomes a double
+    if (left_type == TypeSpecifier::DOUBLE || right_type == TypeSpecifier::DOUBLE) { return TypeSpecifier::DOUBLE; }
+
+    // If either side is a float, the whole operation becomes a float
+    if (left_type == TypeSpecifier::FLOAT || right_type == TypeSpecifier::FLOAT) { return TypeSpecifier::FLOAT; }
+    
+    return TypeSpecifier::INT;
 }
 
 }
