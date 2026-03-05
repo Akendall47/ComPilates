@@ -5,7 +5,7 @@
 
 namespace ast {
 
-enum class TypeSpecifier { INT };
+enum class TypeSpecifier { INT, FLOAT, DOUBLE };
 
 // VarType: base + ptr depth int*, {INT, 1}
 struct VarType {
@@ -23,6 +23,10 @@ LogStream& operator<<(LogStream& ls, const TypeSpecifier& type) {
     switch (type) {
       case TypeSpecifier::INT:
         return "int";
+      case TypeSpecifier::FLOAT:
+        return "float";
+      case TypeSpecifier::DOUBLE:
+        return "double";
     }
     throw std::runtime_error("Unexpected type specifier");
   };

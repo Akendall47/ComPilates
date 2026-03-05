@@ -21,6 +21,7 @@ class Declaration : public Node {
 
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  virtual TypeSpecifier GetType(Context& context) const override;
 };
 // int x = expr;  or  int *p = expr;
 // allocs the stack slot then stores the initial value

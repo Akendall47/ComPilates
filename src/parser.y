@@ -88,9 +88,9 @@ declaration_specifiers
 	;
 
 type_specifier
-	: INT {
-		$$ = TypeSpecifier::INT;
-	}
+	: INT { $$ = TypeSpecifier::INT; }
+	| FLOAT { $$ = TypeSpecifier::FLOAT; }
+	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
 	;
 
 declarator
@@ -219,6 +219,7 @@ primary_expression
 	: INT_CONSTANT {
 		$$ = new IntConstant($1);
 	}
+	| FLOAT_CONSTANT { $$ = new FloatConstant($1); }
 	| IDENTIFIER {
 		$$ = new Identifier(std::move(*$1));
 		delete $1;

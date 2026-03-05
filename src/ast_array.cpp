@@ -16,7 +16,8 @@ void ArrayDeclaration::EmitRISC(std::ostream& stream, Context& context) const {
     stream << name_ << ":\n";
     stream << "    .space " << (array_size_ * 4) << "\n";
   } else {
-    context.AllocateLocal(name_, array_size_ * 4);
+    context.AllocateLocal(name_, type_, array_size_);
+    // NOTE and maybe change: assuming all arrays int atm
   }
 }
 

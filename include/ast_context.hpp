@@ -8,58 +8,53 @@
 #include "ast_type_specifier.hpp"
 
 namespace ast {
-// An object of class Context is passed between ast nodes during compilation.
-// This can be used to pass around information about what's currently being
-// compiled (e.g. function scope and variable names).
+
 class Context {
  public:
   std::string current_function;
   int stack_frame_size = 16;
 
-  // symbol table: name, stack offset (s0 relative)
+  // symbol table: name -> s0-relative offset
   std::unordered_map<std::string, int> locals;
-  // type table: name , varType (base type + pointer depth)
+  // type table: name -> VarType (base type + pointer depth)
   std::unordered_map<std::string, VarType> local_types;
 
-  // global arrays declared at file scope; so we need to use lui/addi %hi/%lo
-  // addressing just track global membership
+  // global arrays declared at file scope
   std::unordered_set<std::string> globals;
   void RegisterGlobal(const std::string& name) { globals.insert(name); }
 
-  // label counter for control flow; returns unique int eg .Lend_0, .Lfor_1
+  // label counter for control flow
   int label_count = 0;
   int AllocateLabel() { return label_count++; }
 
-  // tracks next free byte offset from s0; starts just below saved ra/s0
-  // (-8 = two 4-byte save slots: ra at -4, s0 at -8)
+  // tracks next free byte offset from s0
   int next_local_offset = -8;
 
-  // allocate stack space; size_bytes=4 for scalar, N*4 for array x[N] of ints
-  // records type for later use eg. pointer arithmetic
-  // returns the base offset (lowest address) of the allocated region
-  int AllocateLocal(const std::string& name, int size_bytes = 4,
-                    VarType type = VarType{}) {
-    next_local_offset -= size_bytes;
+  int GetTypeSize(TypeSpecifier type) {
+    switch (type) {
+      case TypeSpecifier::DOUBLE: return 8;
+      default: return 4;  // int, float
+    }
+  }
+
+  // allocate stack space for a scalar; records type for pointer arithmetic
+  int AllocateLocal(const std::string& name, TypeSpecifier type = TypeSpecifier::INT,
+                    int array_length = 1, int pointer_depth = 0) {
+    int element_size = GetTypeSize(type);
+    int total_size = element_size * array_length;
+    next_local_offset -= total_size;
     locals[name] = next_local_offset;
-    local_types[name] = type;
+    local_types[name] = VarType{type, pointer_depth};
     return next_local_offset;
   }
 
-  // ostream base class, so method works with any of its derivatives
-  /*confirmed with GodBolt*/
-
-  // grow stack, save return address, save old frame ptr, set fp to top
-  // 16 byte aligned remember; init to 16: ra; 4bytes, s0: 4 bytes, -> align to
-  // 16
-
   void EmitPrologue(std::ostream& stream) const {
-    stream << "addi    sp, sp, -" << stack_frame_size << "\n";  // new bottom
+    stream << "addi    sp, sp, -" << stack_frame_size << "\n";
     stream << "sw      ra, " << (stack_frame_size - 4) << "(sp)\n";
     stream << "sw      s0, " << (stack_frame_size - 8) << "(sp)\n";
-    stream << "addi    s0, sp, " << stack_frame_size << "\n";  // new s0 to top
+    stream << "addi    s0, sp, " << stack_frame_size << "\n";
   }
 
-  // restore return addr, restore old fp, shrink stack, can then jump
   void EmitEpilogue(std::ostream& stream) const {
     stream << "lw      ra, " << (stack_frame_size - 4) << "(sp)\n";
     stream << "lw      s0, " << (stack_frame_size - 8) << "(sp)\n";

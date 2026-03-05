@@ -1,26 +1,22 @@
 #include "ast_declaration.hpp"
 
+#include "ast_context.hpp"
+
 namespace ast {
 
-// allocate a stack slot for this variable in the context, no instructions
-// emitted; records pointer depth in VarType for later arithmetic
 void Declaration::EmitRISC(std::ostream&, Context& context) const {
-  VarType vt;
-  vt.base = type_;
-  vt.pointer_depth = pointer_depth_;
-  context.AllocateLocal(name_, 4, vt);
+  context.AllocateLocal(name_, type_, 1, pointer_depth_);
 }
 
 void Declaration::Print(std::ostream& stream) const {
-  stream << type_ << " " << name_ << ";" << "\n";
+  stream << type_ << " " << name_ << ";\n";
 }
+
+TypeSpecifier Declaration::GetType(Context&) const { return type_; }
 
 // alloc the slot then evaluate initialiser and store it
 void InitDeclaration::EmitRISC(std::ostream& stream, Context& context) const {
-  VarType vt;
-  vt.base = type_;
-  vt.pointer_depth = pointer_depth_;
-  int offset = context.AllocateLocal(name_, 4, vt);
+  int offset = context.AllocateLocal(name_, type_, 1, pointer_depth_);
   init_->EmitRISC(stream, context);
   stream << "  sw      a0, " << offset << "(s0)\n";
 }

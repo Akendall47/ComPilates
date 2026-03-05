@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ast_context.hpp"
+#include "ast_type_specifier.hpp"
 
 namespace ast {
 
@@ -13,6 +14,7 @@ class Node {
   virtual void EmitRISC(std::ostream& stream, Context& context) const = 0;
   virtual void Print(std::ostream& stream) const = 0;
   virtual int CountDeclarations() const { return 0; }
+  virtual TypeSpecifier GetType(Context&) const { return TypeSpecifier::INT; }
 };
 
 // If you don't feel comfortable using std::unique_ptr, you can switch NodePtr

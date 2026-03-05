@@ -5,30 +5,33 @@
 #include "ast_node.hpp"
 #include "ast_type_specifier.hpp"
 
-class BinaryOp : public ast::Node {
+namespace ast {
+
+class BinaryOp : public Node {
  private:
-  ast::NodePtr left_;
-  ast::NodePtr right_;
+  NodePtr left_;
+  NodePtr right_;
   std::string op_;
 
  public:
-  BinaryOp(ast::NodePtr left, const std::string& op, ast::NodePtr right)
+  BinaryOp(NodePtr left, const std::string& op, NodePtr right)
       : left_(std::move(left)), right_(std::move(right)), op_(op) {}
 
-  void EmitRISC(std::ostream& stream, ast::Context& context) const override;
+  void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  virtual TypeSpecifier GetType(Context& context) const override;
 };
 
-class UnaryOp : public ast::Node {
+class UnaryOp : public Node {
  private:
-  ast::NodePtr operand_;
+  NodePtr operand_;
   std::string op_;
 
  public:
-  UnaryOp(const std::string& op, ast::NodePtr operand)
+  UnaryOp(const std::string& op, NodePtr operand)
       : operand_(std::move(operand)), op_(op) {}
 
-  void EmitRISC(std::ostream& stream, ast::Context& context) const override;
+  void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
 };
 
@@ -74,15 +77,17 @@ class DerefAssign : public ast::Node {
 
 // Posts:  x++, x--
 //  Operand must be an Identifier (lvalue). Loads, modifies, stores back.
-class PostfixOp : public ast::Node {
+class PostfixOp : public Node {
  private:
-  ast::NodePtr operand_;
+  NodePtr operand_;
   std::string op_;  // "++" or "--"
 
  public:
-  PostfixOp(const std::string& op, ast::NodePtr operand)
+  PostfixOp(const std::string& op, NodePtr operand)
       : operand_(std::move(operand)), op_(op) {}
 
-  void EmitRISC(std::ostream& stream, ast::Context& context) const override;
+  void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
 };
+
+}

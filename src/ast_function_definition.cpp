@@ -36,16 +36,28 @@ void FunctionDefinition::EmitRISC(std::ostream& stream,
 
   // Stack/register fixing code to fix over spilling
   if (params) {
-    int arg_reg = 0;
+    int int_arg = 0;
+    int float_arg = 0;
+
     for (const auto& node : params->GetNodes()) {
       node->EmitRISC(stream, context);
 
-      if (arg_reg < 8) {
-        auto decl = dynamic_cast<const Declaration*>(node.get());
-        if (decl) {
-          int offset = context.locals.at(decl->GetName());
-          stream << "  sw a" << arg_reg++ << ", " << offset << "(s0)"
-                 << "\n";
+      auto decl = dynamic_cast<const Declaration*>(node.get());
+      if (decl) {
+        int offset = context.locals.at(decl->GetName());
+        TypeSpecifier type = decl->GetType(context);
+        if (type == TypeSpecifier::FLOAT) {
+            if (float_arg < 8) {
+                stream << "  fsw fa" << float_arg++ << ", " << offset << "(s0)\n";
+            }
+        } else if (type == TypeSpecifier::DOUBLE) {
+            if (float_arg < 8) {
+                stream << "  fsd fa" << float_arg++ << ", " << offset << "(s0)\n";
+            }
+        } else {
+            if (int_arg < 8) {
+                stream << "  sw a" << int_arg++ << ", " << offset << "(s0)\n";
+            }
         }
       }
     }
