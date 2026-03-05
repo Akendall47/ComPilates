@@ -16,8 +16,8 @@ class Context {
 
   // symbol table: name -> s0-relative offset
   std::unordered_map<std::string, int> locals;
-  // type table: name -> VarType (base type + pointer depth)
-  std::unordered_map<std::string, VarType> local_types;
+  // type table: name -> QualifiedType (base type + pointer depth)
+  std::unordered_map<std::string, QualifiedType> local_types;
 
   // global arrays declared at file scope
   std::unordered_set<std::string> globals;
@@ -44,7 +44,7 @@ class Context {
     int total_size = element_size * array_length;
     next_local_offset -= total_size;
     locals[name] = next_local_offset;
-    local_types[name] = VarType{type, pointer_depth};
+    local_types[name] = QualifiedType{type, pointer_depth};
     return next_local_offset;
   }
 

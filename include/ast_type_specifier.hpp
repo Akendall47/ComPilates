@@ -7,8 +7,9 @@ namespace ast {
 
 enum class TypeSpecifier { INT, FLOAT, DOUBLE };
 
-// VarType: base + ptr depth int*, {INT, 1}
-struct VarType {
+// QualifiedType: base + ptr depth e.g. int*, {INT, 1}
+// ie the type + extra quals like ptr depth etc etc
+struct QualifiedType {
   TypeSpecifier base = TypeSpecifier::INT;
   int pointer_depth = 0;
 
