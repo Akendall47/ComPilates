@@ -1,4 +1,5 @@
 #include "ast_constant.hpp"
+#include <cstring>
 
 namespace ast {
 
@@ -14,7 +15,8 @@ void FloatConstant::EmitRISC(std::ostream& stream, Context&) const {
   // Cannot directly store float so must convert into interger representation first
 
   float float_val = static_cast<float>(value_);
-  uint32_t bits = std::bit_cast<uint32_t>(float_val);
+  uint32_t bits;
+  std::memcpy(&bits, &float_val, sizeof(bits));
   stream << "li t0, "<< bits << "\n";
   stream << "  fmv.w.x fa0, t0\n";
 
