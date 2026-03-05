@@ -121,23 +121,40 @@ parameter_list
 parameter_declaration
 	: declaration_specifiers declarator {
 		Identifier* id = dynamic_cast<Identifier*>($2);
-		$$ = new Declaration($1, id->GetName());
+		$$ = new Declaration($1, id->GetName(), 0);
 		delete $2;
+	}
+	| declaration_specifiers '*' IDENTIFIER {
+		// int *p parameter , ptr depth 1
+		$$ = new Declaration($1, *$3, 1);
+		delete $3;
 	}
 	;
 
 declaration
 	: declaration_specifiers declarator ';' {
-		//static cast may be more effieicent, but less safe, especially as we groww
-
     // Fixing bug where it takes functon parameters as declarations (sees int functoin () and groups brackerts as declaration)
-
 		if (Identifier* id = dynamic_cast<Identifier*>($2)){
-      $$ = new Declaration($1, id->GetName());
+      $$ = new Declaration($1, id->GetName(), 0);
     }else{
       $$ = nullptr; // Don't make declaraton if function parameters
     }
 		delete $2;
+	}
+	| declaration_specifiers declarator '=' assignment_expression ';' {
+		// int x = expr;
+		Identifier* id = dynamic_cast<Identifier*>($2);
+		$$ = new InitDeclaration($1, id->GetName(), 0, NodePtr($4));
+		delete $2;
+	}
+	| declaration_specifiers '*' IDENTIFIER ';' {
+		// int *p;ptr declaration, depth=1
+		$$ = new Declaration($1, *$3, 1);
+		delete $3;
+	}
+	| declaration_specifiers '*' IDENTIFIER '=' assignment_expression ';' {
+		$$ = new InitDeclaration($1, *$3, 1, NodePtr($5));
+		delete $3;
 	}
 	| declaration_specifiers IDENTIFIER '[' INT_CONSTANT ']' ';' {
 		// int x[8]; ArrayDeclaration(INT, "x", 8)
@@ -246,6 +263,16 @@ unary_expression
 	| '-' cast_expression { $$ = new UnaryOp("-", NodePtr($2)); }
 	| '~' cast_expression { $$ = new UnaryOp("~", NodePtr($2)); }
 	| '!' cast_expression { $$ = new UnaryOp("!", NodePtr($2)); }
+	| '&' cast_expression {
+		// &x ;  Identifier lvalue
+		Identifier* id = dynamic_cast<Identifier*>($2);
+		$$ = new AddressOf(id->GetName());
+		delete $2;
+	}
+	| '*' cast_expression {
+		// *p as rvalue, deref
+		$$ = new Deref(NodePtr($2));
+	}
 	;
 
 cast_expression
@@ -318,9 +345,15 @@ assignment_expression
 	: conditional_expression
 	| unary_expression '=' assignment_expression {
 		// extract name from lhs Identifier, build Assignment node owning rhs
-		Identifier* id = dynamic_cast<Identifier*>($1);
-		$$ = new Assignment(id->GetName(), NodePtr($3));
-		delete $1;
+		if (Deref* d = dynamic_cast<Deref*>($1)) {
+			// *p = rhs, store through ptr
+			$$ = new DerefAssign(d->TakeOperand(), NodePtr($3));
+			delete $1;
+		} else {
+			Identifier* id = dynamic_cast<Identifier*>($1);
+			$$ = new Assignment(id->GetName(), NodePtr($3));
+			delete $1;
+		}
 	}
 	| postfix_expression '[' expression ']' '=' assignment_expression {
 		// x[i] = rhs: extract name, build array assingment

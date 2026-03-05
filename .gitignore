@@ -4,6 +4,7 @@ build/
 *.o
 *.tab.hpp
 *.tab.cpp
+*.tab.c
 *.yy.cpp
 *.output
 *.gcno

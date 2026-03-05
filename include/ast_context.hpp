@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "ast_type_specifier.hpp"
+
 namespace ast {
 // An object of class Context is passed between ast nodes during compilation.
 // This can be used to pass around information about what's currently being
@@ -14,8 +16,10 @@ class Context {
   std::string current_function;
   int stack_frame_size = 16;
 
-  // basic symbol table for now; maps variable name to offset from s0
+  // symbol table: name, stack offset (s0 relative)
   std::unordered_map<std::string, int> locals;
+  // type table: name , varType (base type + pointer depth)
+  std::unordered_map<std::string, VarType> local_types;
 
   // global arrays declared at file scope; so we need to use lui/addi %hi/%lo
   // addressing just track global membership
@@ -30,11 +34,14 @@ class Context {
   // (-8 = two 4-byte save slots: ra at -4, s0 at -8)
   int next_local_offset = -8;
 
-  // allocate stack space;; size_bytes=4 for scalar, N*4 for array x[N] of ints
+  // allocate stack space; size_bytes=4 for scalar, N*4 for array x[N] of ints
+  // records type for later use eg. pointer arithmetic
   // returns the base offset (lowest address) of the allocated region
-  int AllocateLocal(const std::string& name, int size_bytes = 4) {
+  int AllocateLocal(const std::string& name, int size_bytes = 4,
+                    VarType type = VarType{}) {
     next_local_offset -= size_bytes;
     locals[name] = next_local_offset;
+    local_types[name] = type;
     return next_local_offset;
   }
 

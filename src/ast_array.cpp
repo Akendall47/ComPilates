@@ -67,9 +67,31 @@ static void EmitArrayAddress(std::ostream& stream, Context& context,
   stream << "add     t2, t2, s0\n";
 }
 
-// (rvalue) load x[i] into a0
-// const fast path: lw a0, offset(s0), 1 instr, no t2 needed
+// If name_ is a pointer variable, p[i] == *(p + i*4): load p, scale i, add, lw
+// If name_ is a local array, fast path with base+offset(s0).
 void ArraySubscript::EmitRISC(std::ostream& stream, Context& context) const {
+  auto type_it = context.local_types.find(name_);
+  bool is_ptr =
+      (type_it != context.local_types.end() && type_it->second.is_pointer());
+
+  if (is_ptr) {
+    // ptr, load the ptr value, then add scaled index
+    int ptr_offset = context.locals.at(name_);
+    stream << "lw      t2, " << ptr_offset << "(s0)\n";  // t2 = ptr value
+    if (auto* c = dynamic_cast<const IntConstant*>(index_.get())) {
+      int byte_off = c->GetValue() * type_it->second.pointee_size();
+      if (byte_off != 0) stream << "addi    t2, t2, " << byte_off << "\n";
+    } else {
+      index_.get()->EmitRISC(stream, context);  // index in a0
+      stream << "li      t1, " << type_it->second.pointee_size() << "\n";
+      stream << "mul     a0, a0, t1\n";
+      stream << "add     t2, t2, a0\n";
+    }
+    stream << "lw      a0, 0(t2)\n";
+    return;
+  }
+
+  // local array; base is s0-relative
   int base = context.locals.at(name_);
   if (auto* c = dynamic_cast<const IntConstant*>(index_.get())) {
     int offset = base + c->GetValue() * 4;

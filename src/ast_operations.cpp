@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "ast_context.hpp"
 #include "ast_identifier.hpp"
 
 void PostfixOp::Print(std::ostream& stream) const {
@@ -38,6 +39,47 @@ void BinaryOp::Print(std::ostream& stream) const {
   left_->Print(stream);
   stream << " " << op_ << " ";
   right_->Print(stream);
+  stream << ")";
+}
+
+// &x, put the stack address of x into a0
+// s0 + offset (offset is negative).
+// addi can encode neg imms directly
+void AddressOf::EmitRISC(std::ostream& stream, ast::Context& context) const {
+  int offset = context.locals.at(name_);
+  stream << "  addi    a0, s0, " << offset << "\n";
+}
+
+void AddressOf::Print(std::ostream& stream) const {
+  stream << "(&" << name_ << ")";
+}
+
+// *p; p's value (an address), then load the int at that address
+void Deref::EmitRISC(std::ostream& stream, ast::Context& context) const {
+  operand_->EmitRISC(stream, context);
+  stream << "  lw      a0, 0(a0)\n";
+}
+
+void Deref::Print(std::ostream& stream) const {
+  stream << "(*";
+  operand_->Print(stream);
+  stream << ")";
+}
+
+// *p = v; pattern-match ptr as Identifier, load its address directly from frame
+void DerefAssign::EmitRISC(std::ostream& stream, ast::Context& context) const {
+  rhs_->EmitRISC(stream, context);  // a0 = value to store
+  const auto& id = dynamic_cast<const ast::Identifier&>(*ptr_);
+  int offset = context.locals.at(id.GetName());
+  stream << "  lw      t1, " << offset << "(s0)\n";  // t1 = ptr value (address)
+  stream << "  sw      a0, 0(t1)\n";                 // *ptr = value
+}
+
+void DerefAssign::Print(std::ostream& stream) const {
+  stream << "(*";
+  ptr_->Print(stream);
+  stream << " = ";
+  rhs_->Print(stream);
   stream << ")";
 }
 
@@ -98,6 +140,29 @@ void BinaryOp::EmitRISC(std::ostream& stream, ast::Context& context) const {
 
   stream << "  lw t1, 0(sp)" << "\n";
   stream << "  addi sp, sp, 4" << "\n";
+
+  // Ptr maths; if left side is ptr, scale right side by stride
+  // detect by check if left_ an Identifier with ptr type
+  if (op_ == "+" || op_ == "-") {
+    int stride = 1;
+    if (auto* id = dynamic_cast<const ast::Identifier*>(left_.get())) {
+      auto it = context.local_types.find(id->GetName());
+      if (it != context.local_types.end() && it->second.is_pointer()) {
+        stride = it->second.pointee_size();  // 4 for int*
+      }
+    }
+    if (stride != 1) {
+      // scale offset (a0) by stride before add/subbing
+      stream << "  li t2, " << stride << "\n";
+      stream << "  mul a0, a0, t2\n";
+    }
+    if (op_ == "+") {
+      stream << "  add a0, t1, a0\n";
+    } else {
+      stream << "  sub a0, t1, a0\n";
+    }
+    return;
+  }
 
   if (op_ == "+") {
     stream << "  add a0, t1, a0" << "\n";
