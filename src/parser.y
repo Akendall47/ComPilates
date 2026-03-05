@@ -54,7 +54,7 @@
 
 %type <number_int> INT_CONSTANT STRING_LITERAL
 %type <number_float> FLOAT_CONSTANT
-%type <string> IDENTIFIER
+%type <string> IDENTIFIER TYPE_NAME
 %type <type_specifier> type_specifier declaration_specifiers
 
 
@@ -91,6 +91,10 @@ type_specifier
 	: INT { $$ = TypeSpecifier::INT; }
 	| FLOAT { $$ = TypeSpecifier::FLOAT; }
 	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
+  | TYPE_NAME {
+    $$ = global_type_aliases[*$1];
+    delete $1;
+  }
 	;
 
 declarator
@@ -132,7 +136,17 @@ parameter_declaration
 	;
 
 declaration
-	: declaration_specifiers declarator ';' {
+  : TYPEDEF declaration_specifiers declarator ';' {
+    if (Identifier* id = dynamic_cast<Identifier*>($3)) {
+      std::string name = id->GetName();
+      global_typedef_names.insert(name);
+      global_type_aliases[name] = $2;
+    }
+
+    $$ = nullptr;
+    delete $3;
+  }
+	| declaration_specifiers declarator ';' {
     // Fixing bug where it takes functon parameters as declarations (sees int functoin () and groups brackerts as declaration)
 		if (Identifier* id = dynamic_cast<Identifier*>($2)){
       $$ = new Declaration($1, id->GetName(), 0);

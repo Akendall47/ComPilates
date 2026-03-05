@@ -1,6 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <csignal>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "ast.hpp"
 #include "cli.hpp"
@@ -9,6 +11,9 @@ using ast::NodePtr;
 
 // Wrapper for ParseAST defined in YACC
 NodePtr Parse(const std::string& compile_source_path);
+
+std::unordered_set<std::string> global_typedef_names; // Just so I can define the global variable
+std::unordered_map<std::string, ast::TypeSpecifier> global_type_aliases;
 
 // Output the pretty print version of what was parsed to the .printed output
 // file.

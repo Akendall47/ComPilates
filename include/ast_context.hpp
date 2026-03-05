@@ -7,6 +7,10 @@
 
 #include "ast_type_specifier.hpp"
 
+extern std::unordered_set<std::string>
+    global_typedef_names;  // Need to make global so parser can see
+// type alias table for type def
+extern std::unordered_map<std::string, ast::TypeSpecifier> global_type_aliases;
 namespace ast {
 
 class Context {
@@ -32,13 +36,16 @@ class Context {
 
   int GetTypeSize(TypeSpecifier type) {
     switch (type) {
-      case TypeSpecifier::DOUBLE: return 8;
-      default: return 4;  // int, float
+      case TypeSpecifier::DOUBLE:
+        return 8;
+      default:
+        return 4;  // int, float
     }
   }
 
   // allocate stack space for a scalar; records type for pointer arithmetic
-  int AllocateLocal(const std::string& name, TypeSpecifier type = TypeSpecifier::INT,
+  int AllocateLocal(const std::string& name,
+                    TypeSpecifier type = TypeSpecifier::INT,
                     int array_length = 1, int pointer_depth = 0) {
     int element_size = GetTypeSize(type);
     int total_size = element_size * array_length;
