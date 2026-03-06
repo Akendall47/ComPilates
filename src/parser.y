@@ -88,13 +88,15 @@ declaration_specifiers
 	;
 
 type_specifier
-	: INT { $$ = TypeSpecifier::INT; }
-	| FLOAT { $$ = TypeSpecifier::FLOAT; }
-	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
-  | TYPE_NAME {
-    $$ = global_type_aliases[*$1];
-    delete $1;
-  }
+	: INT { $$ = TypeSpecifier::INT; global_typedef_pointer_depth = 0; }
+	| FLOAT { $$ = TypeSpecifier::FLOAT; global_typedef_pointer_depth = 0; }
+	| DOUBLE { $$ = TypeSpecifier::DOUBLE; global_typedef_pointer_depth = 0; }
+	| TYPE_NAME {
+		auto& qt = global_type_aliases[*$1];
+        $$ = qt.base;
+        global_typedef_pointer_depth = qt.pointer_depth;
+        delete $1;
+	}
 	;
 
 declarator
@@ -125,31 +127,39 @@ parameter_list
 parameter_declaration
 	: declaration_specifiers declarator {
 		Identifier* id = dynamic_cast<Identifier*>($2);
-		$$ = new Declaration($1, id->GetName(), 0);
+		$$ = new Declaration($1, id->GetName(), global_typedef_pointer_depth);
 		delete $2;
 	}
 	| declaration_specifiers '*' IDENTIFIER {
 		// int *p parameter , ptr depth 1
-		$$ = new Declaration($1, *$3, 1);
+		$$ = new Declaration($1, *$3, 1 + global_typedef_pointer_depth);
 		delete $3;
 	}
 	;
 
 declaration
-  : TYPEDEF declaration_specifiers declarator ';' {
-    if (Identifier* id = dynamic_cast<Identifier*>($3)) {
-      std::string name = id->GetName();
-      global_typedef_names.insert(name);
-      global_type_aliases[name] = $2;
-    }
+	: TYPEDEF declaration_specifiers declarator ';' {
+		if (Identifier* id = dynamic_cast<Identifier*>($3)) {
+		std::string name = id->GetName();
+		global_typedef_names.insert(name);
+		global_type_aliases[name] = QualifiedType{$2, global_typedef_pointer_depth};
+		}
 
-    $$ = nullptr;
-    delete $3;
-  }
+		$$ = nullptr;
+		delete $3;
+
+	}
+	| TYPEDEF declaration_specifiers '*' IDENTIFIER ';' {
+        std::string name = *$4;
+        global_typedef_names.insert(name);
+        global_type_aliases[name] = QualifiedType{$2, 1 + global_typedef_pointer_depth};
+        $$ = nullptr;
+        delete $4;
+    }
 	| declaration_specifiers declarator ';' {
     // Fixing bug where it takes functon parameters as declarations (sees int functoin () and groups brackerts as declaration)
-		if (Identifier* id = dynamic_cast<Identifier*>($2)){
-      $$ = new Declaration($1, id->GetName(), 0);
+	if (Identifier* id = dynamic_cast<Identifier*>($2)){
+      $$ = new Declaration($1, id->GetName(), global_typedef_pointer_depth);
     }else{
       $$ = nullptr; // Don't make declaraton if function parameters
     }
@@ -158,7 +168,7 @@ declaration
 	| declaration_specifiers declarator '=' assignment_expression ';' {
 		// int x = expr;
 		Identifier* id = dynamic_cast<Identifier*>($2);
-		$$ = new InitDeclaration($1, id->GetName(), 0, NodePtr($4));
+		$$ = new InitDeclaration($1, id->GetName(), global_typedef_pointer_depth, NodePtr($4));
 		delete $2;
 	}
 	| declaration_specifiers '*' IDENTIFIER ';' {

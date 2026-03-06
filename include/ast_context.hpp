@@ -10,7 +10,8 @@
 extern std::unordered_set<std::string>
     global_typedef_names;  // Need to make global so parser can see
 // type alias table for type def
-extern std::unordered_map<std::string, ast::TypeSpecifier> global_type_aliases;
+extern std::unordered_map<std::string, ast::QualifiedType> global_type_aliases;
+extern int global_typedef_pointer_depth;
 namespace ast {
 
 class Context {
