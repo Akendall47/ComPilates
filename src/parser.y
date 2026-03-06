@@ -48,6 +48,7 @@
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
 %type <node> parameter_declaration declaration
 %type <node> expression_statement selection_statement iteration_statement
+%type <node> enum_specifier enumerator_list enumerator
 
 
 %type <node_list> statement_list parameter_list argument_expression_list translation_unit
@@ -97,6 +98,32 @@ type_specifier
         global_typedef_pointer_depth = qt.pointer_depth;
         delete $1;
 	}
+	| enum_specifier { $$ = TypeSpecifier::INT; global_typedef_pointer_depth = 0; }
+	;
+
+enum_specifier
+	: ENUM '{' enumerator_list '}' { $$ = nullptr; }
+	| ENUM IDENTIFIER '{' enumerator_list '}' { $$ = nullptr; delete $2; }
+	| ENUM IDENTIFIER { $$ = nullptr; delete $2; }
+	;
+
+enumerator_list
+	: enumerator { $$ = nullptr; }
+	| enumerator_list ',' enumerator { $$ = nullptr; }
+	;
+
+enumerator
+	: IDENTIFIER {
+		global_enum_names[*$1] = global_enum_next_value++;
+        $$ = nullptr;
+        delete $1;
+	}
+	| IDENTIFIER '=' INT_CONSTANT {
+		global_enum_names[*$1] = $3;
+		global_enum_next_value = $3 + 1;
+		$$ = nullptr;
+		delete $1;
+	}
 	;
 
 declarator
@@ -138,7 +165,8 @@ parameter_declaration
 	;
 
 declaration
-	: TYPEDEF declaration_specifiers declarator ';' {
+	: declaration_specifiers ';' { $$ = nullptr; }
+	| TYPEDEF declaration_specifiers declarator ';' {
 		if (Identifier* id = dynamic_cast<Identifier*>($3)) {
 		std::string name = id->GetName();
 		global_typedef_names.insert(name);

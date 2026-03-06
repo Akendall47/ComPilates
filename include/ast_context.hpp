@@ -7,11 +7,12 @@
 
 #include "ast_type_specifier.hpp"
 
-extern std::unordered_set<std::string>
-    global_typedef_names;  // Need to make global so parser can see
-// type alias table for type def
-extern std::unordered_map<std::string, ast::QualifiedType> global_type_aliases;
+extern std::unordered_set<std::string> global_typedef_names;  // Need to make global so parser can see
+extern std::unordered_map<std::string, ast::QualifiedType> global_type_aliases; // type alias table for type def
 extern int global_typedef_pointer_depth;
+
+extern std::unordered_map<std::string, int> global_enum_names;
+extern int global_enum_next_value;
 namespace ast {
 
 class Context {

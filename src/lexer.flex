@@ -58,9 +58,13 @@ IS  (u|U|l|L)*
 "while"			{return(WHILE);}
 
 {L}({L}|{D})*  {
-    if (global_typedef_names.count(yytext)) {
+    if (global_typedef_names.count(yytext)){
         yylval.string = new std::string(yytext);
         return(TYPE_NAME);
+    }
+    if (global_enum_names.count(yytext)){
+        yylval.number_int = global_enum_names[yytext];
+        return(INT_CONSTANT);
     }
     yylval.string = new std::string(yytext);
     return(IDENTIFIER);
