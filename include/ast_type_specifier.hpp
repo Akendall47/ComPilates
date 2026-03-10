@@ -5,7 +5,7 @@
 
 namespace ast {
 
-enum class TypeSpecifier { INT, FLOAT, DOUBLE };
+enum class TypeSpecifier { INT, FLOAT, DOUBLE, CHAR };
 
 // QualifiedType: base + ptr depth e.g. int*, {INT, 1}
 // ie the type + extra quals like ptr depth etc etc
@@ -28,6 +28,8 @@ LogStream& operator<<(LogStream& ls, const TypeSpecifier& type) {
         return "float";
       case TypeSpecifier::DOUBLE:
         return "double";
+      case TypeSpecifier::CHAR:
+        return "char";
     }
     throw std::runtime_error("Unexpected type specifier");
   };

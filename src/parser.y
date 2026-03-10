@@ -106,6 +106,7 @@ type_specifier
 	: INT { $$ = TypeSpecifier::INT; }
 	| FLOAT { $$ = TypeSpecifier::FLOAT; }
 	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
+	| CHAR { $$ = TypeSpecifier::CHAR; }
 	;
 
 declarator
@@ -302,6 +303,13 @@ unary_expression
 	| SIZEOF '(' IDENTIFIER ')' {
 		$$ = new SizeOf(*$3);
 		delete $3;
+	}
+	| SIZEOF '(' type_specifier ')' {
+		$$ = new SizeOfType($3);
+	}
+	| SIZEOF '(' type_specifier pointer ')' {
+		(void)$3; (void)$4;
+		$$ = new SizeOfPointer();
 	}
 	;
 

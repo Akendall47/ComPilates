@@ -52,6 +52,8 @@ class Context {
     switch (type) {
       case TypeSpecifier::DOUBLE:
         return 8;
+      case TypeSpecifier::CHAR:
+        return 1;
       default:
         return 4;  // int, float
     }

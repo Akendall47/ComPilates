@@ -123,27 +123,4 @@ class StructMemberSet : public Node {
   }
 };
 
-// may have to update for other local types
-class SizeOf : public Node {
-  std::string operand_name_;
-
- public:
-  explicit SizeOf(std::string operand_name)
-      : operand_name_(std::move(operand_name)) {}
-
-  void EmitRISC(std::ostream& stream, Context& context) const override {
-    int byte_size = 4;  // default for int/float/pointer
-    if (context.local_struct_type.count(operand_name_)) {
-      const std::string& struct_tag =
-          context.local_struct_type.at(operand_name_);
-      byte_size = context.struct_types.at(struct_tag).total_size;
-    }
-    stream << "  li      a0, " << byte_size << "\n";
-  }
-
-  void Print(std::ostream& stream) const override {
-    stream << "sizeof(" << operand_name_ << ")";
-  }
-};
-
 }  // namespace ast
