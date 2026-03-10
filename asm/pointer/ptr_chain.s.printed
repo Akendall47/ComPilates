@@ -1,0 +1,9 @@
+int f() {
+int x;
+int p;
+int pp;
+x = 7;
+p = (&x);
+pp = (&p);
+return (*(*pp));
+}
