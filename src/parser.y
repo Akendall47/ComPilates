@@ -24,13 +24,14 @@
 //lexer-parser bridge
 //eg yylval.string lives in string field as temp spot
 %union {
-  Node*				    node;
-  NodeList*			  node_list;
-  int          		number_int;
-  double       		number_float;
-  std::string*		string;
-  TypeSpecifier 	type_specifier;
-  yytokentype  		token;
+  Node*				        node;
+  NodeList*			        node_list;
+  int          		        number_int;
+  double       		        number_float;
+  std::string*		        string;
+  TypeSpecifier 	        type_specifier;
+  yytokentype  		        token;
+  std::vector<std::string>* string_vec;
 }
 
 %token IDENTIFIER INT_CONSTANT FLOAT_CONSTANT STRING_LITERAL
@@ -56,6 +57,7 @@
 %type <number_float> FLOAT_CONSTANT
 %type <string> IDENTIFIER
 %type <type_specifier> type_specifier declaration_specifiers
+%type <string_vec> struct_member_list
 
 
 %start ROOT
@@ -75,6 +77,19 @@ translation_unit
 external_declaration
 	: function_definition { $$ = $1; }
   | declaration { $$ = $1; }
+  | STRUCT IDENTIFIER '{' struct_member_list '}' ';' {
+      $$ = new StructDefinition(*$2, std::move(*$4));
+      delete $2; delete $4;
+  }
+	;
+
+struct_member_list
+	: type_specifier IDENTIFIER ';' {
+		$$ = new std::vector<std::string>(); $$->push_back(*$2); delete $2;
+	}
+	| struct_member_list type_specifier IDENTIFIER ';' {
+		$1->push_back(*$3); delete $3; $$ = $1;
+	}
 	;
 
 function_definition
@@ -159,9 +174,13 @@ declaration
 		delete $3;
 	}
 	| declaration_specifiers IDENTIFIER '[' INT_CONSTANT ']' ';' {
-		// int x[8]; ArrayDeclaration(INT, "x", 8)
 		$$ = new ArrayDeclaration($1, *$2, $4);
 		delete $2;
+	}
+	| STRUCT IDENTIFIER IDENTIFIER ';' {
+		// struct x z;
+		$$ = new StructDeclaration(*$2, *$3);
+		delete $2; delete $3;
 	}
 	;
 
@@ -251,6 +270,11 @@ postfix_expression
 	}
 	| postfix_expression INC_OP { $$ = new PostfixOp("++", NodePtr($1)); }
 	| postfix_expression DEC_OP { $$ = new PostfixOp("--", NodePtr($1)); }
+	| postfix_expression '.' IDENTIFIER {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new StructMemberGet(id->GetName(), *$3);
+		delete $1; delete $3;
+	}
 	;
 
 argument_expression_list
@@ -273,8 +297,11 @@ unary_expression
 		delete $2;
 	}
 	| '*' cast_expression {
-		// *p as rvalue, deref
 		$$ = new Deref(NodePtr($2));
+	}
+	| SIZEOF '(' IDENTIFIER ')' {
+		$$ = new SizeOf(*$3);
+		delete $3;
 	}
 	;
 
@@ -359,10 +386,15 @@ assignment_expression
 		}
 	}
 	| postfix_expression '[' expression ']' '=' assignment_expression {
-		// x[i] = rhs: extract name, build array assingment
 		Identifier* id = dynamic_cast<Identifier*>($1);
 		$$ = new ArrayAssignment(id->GetName(), NodePtr($3), NodePtr($6));
 		delete $1;
+	}
+	| postfix_expression '.' IDENTIFIER '=' assignment_expression {
+		// z.y = rhs
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new StructMemberSet(id->GetName(), *$3, NodePtr($5));
+		delete $1; delete $3;
 	}
 	;
 
