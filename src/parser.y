@@ -52,7 +52,7 @@
 
 %type <node_list> statement_list parameter_list argument_expression_list translation_unit
 
-%type <number_int> INT_CONSTANT STRING_LITERAL
+%type <number_int> INT_CONSTANT STRING_LITERAL pointer
 %type <number_float> FLOAT_CONSTANT
 %type <string> IDENTIFIER
 %type <type_specifier> type_specifier declaration_specifiers
@@ -117,16 +117,19 @@ parameter_list
 
 //reminder eg: "int x" - $1=type, $2=name, return name node
 
-// I fixed reminder by making GetName to return node name
+pointer
+	: '*'         { $$ = 1; }
+	| '*' pointer { $$ = $2 + 1; }
+	;
+
 parameter_declaration
 	: declaration_specifiers declarator {
 		Identifier* id = dynamic_cast<Identifier*>($2);
 		$$ = new Declaration($1, id->GetName(), 0);
 		delete $2;
 	}
-	| declaration_specifiers '*' IDENTIFIER {
-		// int *p parameter , ptr depth 1
-		$$ = new Declaration($1, *$3, 1);
+	| declaration_specifiers pointer IDENTIFIER {
+		$$ = new Declaration($1, *$3, $2);
 		delete $3;
 	}
 	;
@@ -147,13 +150,12 @@ declaration
 		$$ = new InitDeclaration($1, id->GetName(), 0, NodePtr($4));
 		delete $2;
 	}
-	| declaration_specifiers '*' IDENTIFIER ';' {
-		// int *p;ptr declaration, depth=1
-		$$ = new Declaration($1, *$3, 1);
+	| declaration_specifiers pointer IDENTIFIER ';' {
+		$$ = new Declaration($1, *$3, $2);
 		delete $3;
 	}
-	| declaration_specifiers '*' IDENTIFIER '=' assignment_expression ';' {
-		$$ = new InitDeclaration($1, *$3, 1, NodePtr($5));
+	| declaration_specifiers pointer IDENTIFIER '=' assignment_expression ';' {
+		$$ = new InitDeclaration($1, *$3, $2, NodePtr($5));
 		delete $3;
 	}
 	| declaration_specifiers IDENTIFIER '[' INT_CONSTANT ']' ';' {

@@ -52,7 +52,7 @@ void AddressOf::Print(std::ostream& stream) const {
 // *p; load p's value (an address), then load the int at that address
 void Deref::EmitRISC(std::ostream& stream, Context& context) const {
   operand_->EmitRISC(stream, context);  // a0 = the pointer value
-  stream << "  lw      a0, 0(a0)\n";   // a0 = *ptr
+  stream << "  lw      a0, 0(a0)\n";    // a0 = *ptr
 }
 
 void Deref::Print(std::ostream& stream) const {
@@ -61,21 +61,20 @@ void Deref::Print(std::ostream& stream) const {
   stream << ")";
 }
 
-// *p = v; pattern-match ptr as Identifier, load its address directly from frame
+// *p = v  OR  **pp = v  (any depth)
 void DerefAssign::EmitRISC(std::ostream& stream, Context& context) const {
-  rhs_->EmitRISC(stream, context);  // a0 = value to store
-  const auto& id = dynamic_cast<const Identifier&>(*ptr_);
-  int offset = context.locals.at(id.GetName());
-  stream << "  lw      t1, " << offset << "(s0)\n";  // t1 = pointer value (address)
-  stream << "  sw      a0, 0(t1)\n";                 // *ptr = value
+  rhs_->EmitRISC(stream, context);
+  stream << "  mv      t2, a0\n";  // t2 = value (save before ptr eval)
+  ptr_->EmitRISC(stream, context);
+  stream << "  sw      t2, 0(a0)\n";
 }
 
 void DerefAssign::Print(std::ostream& stream) const {
-  stream << "(*";
+  stream << "*(";
   ptr_->Print(stream);
-  stream << " = ";
+  stream << ") = ";
   rhs_->Print(stream);
-  stream << ")";
+  stream << ";\n";
 }
 
 void UnaryOp::EmitRISC(std::ostream& stream, Context& context) const {
@@ -87,9 +86,12 @@ void UnaryOp::EmitRISC(std::ostream& stream, Context& context) const {
   } else if (type == TypeSpecifier::DOUBLE) {
     if (op_ == "-") stream << "  fneg.d fa0, fa0\n";
   } else {
-    if (op_ == "-") stream << "  neg a0, a0\n";
-    else if (op_ == "!") stream << "  seqz a0, a0\n";
-    else if (op_ == "~") stream << "  not a0, a0\n";
+    if (op_ == "-")
+      stream << "  neg a0, a0\n";
+    else if (op_ == "!")
+      stream << "  seqz a0, a0\n";
+    else if (op_ == "~")
+      stream << "  not a0, a0\n";
   }
 }
 
@@ -147,21 +149,35 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
   stream << "  addi sp, sp, 8\n";
 
   if (op_type == TypeSpecifier::FLOAT) {
-    if (op_ == "+") stream << "  fadd.s fa0, ft1, fa0\n";
-    else if (op_ == "-") stream << "  fsub.s fa0, ft1, fa0\n";
-    else if (op_ == "*") stream << "  fmul.s fa0, ft1, fa0\n";
-    else if (op_ == "/") stream << "  fdiv.s fa0, ft1, fa0\n";
-    else if (op_ == "<") stream << "  flt.s a0, ft1, fa0\n";
-    else if (op_ == "<=") stream << "  fle.s a0, ft1, fa0\n";
-    else if (op_ == "==") stream << "  feq.s a0, ft1, fa0\n";
+    if (op_ == "+")
+      stream << "  fadd.s fa0, ft1, fa0\n";
+    else if (op_ == "-")
+      stream << "  fsub.s fa0, ft1, fa0\n";
+    else if (op_ == "*")
+      stream << "  fmul.s fa0, ft1, fa0\n";
+    else if (op_ == "/")
+      stream << "  fdiv.s fa0, ft1, fa0\n";
+    else if (op_ == "<")
+      stream << "  flt.s a0, ft1, fa0\n";
+    else if (op_ == "<=")
+      stream << "  fle.s a0, ft1, fa0\n";
+    else if (op_ == "==")
+      stream << "  feq.s a0, ft1, fa0\n";
   } else if (op_type == TypeSpecifier::DOUBLE) {
-    if (op_ == "+") stream << "  fadd.d fa0, ft1, fa0\n";
-    else if (op_ == "-") stream << "  fsub.d fa0, ft1, fa0\n";
-    else if (op_ == "*") stream << "  fmul.d fa0, ft1, fa0\n";
-    else if (op_ == "/") stream << "  fdiv.d fa0, ft1, fa0\n";
-    else if (op_ == "<") stream << "  flt.d a0, ft1, fa0\n";
-    else if (op_ == "<=") stream << "  fle.d a0, ft1, fa0\n";
-    else if (op_ == "==") stream << "  feq.d a0, ft1, fa0\n";
+    if (op_ == "+")
+      stream << "  fadd.d fa0, ft1, fa0\n";
+    else if (op_ == "-")
+      stream << "  fsub.d fa0, ft1, fa0\n";
+    else if (op_ == "*")
+      stream << "  fmul.d fa0, ft1, fa0\n";
+    else if (op_ == "/")
+      stream << "  fdiv.d fa0, ft1, fa0\n";
+    else if (op_ == "<")
+      stream << "  flt.d a0, ft1, fa0\n";
+    else if (op_ == "<=")
+      stream << "  fle.d a0, ft1, fa0\n";
+    else if (op_ == "==")
+      stream << "  feq.d a0, ft1, fa0\n";
   } else {
     // integer ops — check for pointer stride scaling on + and -
     if (op_ == "+" || op_ == "-") {
@@ -176,27 +192,50 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
         stream << "  li t2, " << stride << "\n";
         stream << "  mul a0, a0, t2\n";
       }
-      if (op_ == "+") stream << "  add a0, t1, a0\n";
-      else             stream << "  sub a0, t1, a0\n";
+      if (op_ == "+")
+        stream << "  add a0, t1, a0\n";
+      else
+        stream << "  sub a0, t1, a0\n";
       return;
     }
 
-    if (op_ == "+") stream << "  add a0, t1, a0\n";
-    else if (op_ == "-") stream << "  sub a0, t1, a0\n";
-    else if (op_ == "*") stream << "  mul a0, t1, a0\n";
-    else if (op_ == "/") stream << "  div a0, t1, a0\n";
-    else if (op_ == "%") stream << "  rem a0, t1, a0\n";
-    else if (op_ == "<<") stream << "  sll a0, t1, a0\n";
-    else if (op_ == ">>") stream << "  sra a0, t1, a0\n";
-    else if (op_ == "&") stream << "  and a0, t1, a0\n";
-    else if (op_ == "^") stream << "  xor a0, t1, a0\n";
-    else if (op_ == "|") stream << "  or a0, t1, a0\n";
-    else if (op_ == "<") stream << "  slt a0, t1, a0\n";
-    else if (op_ == ">") stream << "  slt a0, a0, t1\n";
-    else if (op_ == "<=") { stream << "  sgt a0, t1, a0\n"; stream << "  xori a0, a0, 1\n"; }
-    else if (op_ == ">=") { stream << "  slt a0, t1, a0\n"; stream << "  xori a0, a0, 1\n"; }
-    else if (op_ == "==") { stream << "  sub t1, t1, a0\n"; stream << "  seqz a0, t1\n"; }
-    else if (op_ == "!=") { stream << "  sub t1, t1, a0\n"; stream << "  snez a0, t1\n"; }
+    if (op_ == "+")
+      stream << "  add a0, t1, a0\n";
+    else if (op_ == "-")
+      stream << "  sub a0, t1, a0\n";
+    else if (op_ == "*")
+      stream << "  mul a0, t1, a0\n";
+    else if (op_ == "/")
+      stream << "  div a0, t1, a0\n";
+    else if (op_ == "%")
+      stream << "  rem a0, t1, a0\n";
+    else if (op_ == "<<")
+      stream << "  sll a0, t1, a0\n";
+    else if (op_ == ">>")
+      stream << "  sra a0, t1, a0\n";
+    else if (op_ == "&")
+      stream << "  and a0, t1, a0\n";
+    else if (op_ == "^")
+      stream << "  xor a0, t1, a0\n";
+    else if (op_ == "|")
+      stream << "  or a0, t1, a0\n";
+    else if (op_ == "<")
+      stream << "  slt a0, t1, a0\n";
+    else if (op_ == ">")
+      stream << "  slt a0, a0, t1\n";
+    else if (op_ == "<=") {
+      stream << "  sgt a0, t1, a0\n";
+      stream << "  xori a0, a0, 1\n";
+    } else if (op_ == ">=") {
+      stream << "  slt a0, t1, a0\n";
+      stream << "  xori a0, a0, 1\n";
+    } else if (op_ == "==") {
+      stream << "  sub t1, t1, a0\n";
+      stream << "  seqz a0, t1\n";
+    } else if (op_ == "!=") {
+      stream << "  sub t1, t1, a0\n";
+      stream << "  snez a0, t1\n";
+    }
   }
 }
 
