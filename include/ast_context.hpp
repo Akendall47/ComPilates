@@ -53,9 +53,10 @@ class Context {
       case TypeSpecifier::DOUBLE:
         return 8;
       case TypeSpecifier::CHAR:
+      case TypeSpecifier::UCHAR:
         return 1;
       default:
-        return 4;  // int, float
+        return 4;  // int, uint, float
     }
   }
 

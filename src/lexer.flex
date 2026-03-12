@@ -22,7 +22,7 @@ FS  (f|F|l|L)
 IS  (u|U|l|L)*
 
 %%
-"/*"			{/* consumes comment - TODO you might want to process and emit it in your assembly for debugging */}
+"/*"([^*]|\*+[^*/])*\*+"/"	{ /* block comment — consume everything up to closing */ }
 
 "auto"			{return(AUTO);}
 "break"			{return(BREAK);}
@@ -59,7 +59,7 @@ IS  (u|U|l|L)*
 
 {L}({L}|{D})*		{yylval.string = new std::string(yytext); return(IDENTIFIER);}
 
-0[xX]{H}+{IS}?		{yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
+0[xX]{H}+{IS}?		{yylval.number_int = (int)(unsigned int)strtoul(yytext, NULL, 0); return(INT_CONSTANT);}
 0{D}+{IS}?		    {yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
 {D}+{IS}?		      {yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
 L?'(\\.|[^\\'])+'	{

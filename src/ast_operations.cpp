@@ -205,6 +205,7 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
       return;
     }
 
+    bool is_unsigned = IsUnsigned(op_type);
     if (op_ == "+")
       stream << "  add a0, t1, a0\n";
     else if (op_ == "-")
@@ -212,13 +213,13 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
     else if (op_ == "*")
       stream << "  mul a0, t1, a0\n";
     else if (op_ == "/")
-      stream << "  div a0, t1, a0\n";
+      stream << (is_unsigned ? "  divu a0, t1, a0\n" : "  div a0, t1, a0\n");
     else if (op_ == "%")
-      stream << "  rem a0, t1, a0\n";
+      stream << (is_unsigned ? "  remu a0, t1, a0\n" : "  rem a0, t1, a0\n");
     else if (op_ == "<<")
       stream << "  sll a0, t1, a0\n";
     else if (op_ == ">>")
-      stream << "  sra a0, t1, a0\n";
+      stream << (is_unsigned ? "  srl a0, t1, a0\n" : "  sra a0, t1, a0\n");
     else if (op_ == "&")
       stream << "  and a0, t1, a0\n";
     else if (op_ == "^")
@@ -226,14 +227,14 @@ void BinaryOp::EmitRISC(std::ostream& stream, Context& context) const {
     else if (op_ == "|")
       stream << "  or a0, t1, a0\n";
     else if (op_ == "<")
-      stream << "  slt a0, t1, a0\n";
+      stream << (is_unsigned ? "  sltu a0, t1, a0\n" : "  slt a0, t1, a0\n");
     else if (op_ == ">")
-      stream << "  slt a0, a0, t1\n";
+      stream << (is_unsigned ? "  sltu a0, a0, t1\n" : "  slt a0, a0, t1\n");
     else if (op_ == "<=") {
-      stream << "  sgt a0, t1, a0\n";
+      stream << (is_unsigned ? "  sgtu a0, t1, a0\n" : "  sgt a0, t1, a0\n");
       stream << "  xori a0, a0, 1\n";
     } else if (op_ == ">=") {
-      stream << "  slt a0, t1, a0\n";
+      stream << (is_unsigned ? "  sltu a0, t1, a0\n" : "  slt a0, t1, a0\n");
       stream << "  xori a0, a0, 1\n";
     } else if (op_ == "==") {
       stream << "  sub t1, t1, a0\n";
@@ -253,6 +254,8 @@ TypeSpecifier BinaryOp::GetType(Context& context) const {
     return TypeSpecifier::DOUBLE;
   if (left_type == TypeSpecifier::FLOAT || right_type == TypeSpecifier::FLOAT)
     return TypeSpecifier::FLOAT;
+  if (IsUnsigned(left_type) || IsUnsigned(right_type))
+    return TypeSpecifier::UINT;
   return TypeSpecifier::INT;
 }
 
