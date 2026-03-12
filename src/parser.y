@@ -246,6 +246,10 @@ primary_expression
 		$$ = new Identifier(std::move(*$1));
 		delete $1;
 	}
+	| STRING_LITERAL {
+		$$ = new StringLiteral(std::move(*$1));
+		delete $1;
+	}
 	;
 
 
