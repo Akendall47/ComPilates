@@ -111,6 +111,9 @@ type_specifier
 	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
 	| CHAR { $$ = TypeSpecifier::CHAR; }
 	| VOID { $$ = TypeSpecifier::VOID; }
+	| UNSIGNED INT { $$ = TypeSpecifier::UINT; }
+	| UNSIGNED CHAR { $$ = TypeSpecifier::UCHAR; }
+	| UNSIGNED { $$ = TypeSpecifier::UINT; }
 	;
 
 declarator
