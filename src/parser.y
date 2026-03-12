@@ -53,9 +53,9 @@
 
 %type <node_list> statement_list parameter_list argument_expression_list translation_unit
 
-%type <number_int> INT_CONSTANT STRING_LITERAL pointer
+%type <number_int> INT_CONSTANT pointer
 %type <number_float> FLOAT_CONSTANT
-%type <string> IDENTIFIER
+%type <string> IDENTIFIER STRING_LITERAL
 %type <type_specifier> type_specifier declaration_specifiers
 %type <string_vec> struct_member_list
 
