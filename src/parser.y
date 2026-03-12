@@ -53,9 +53,9 @@
 
 %type <node_list> statement_list parameter_list argument_expression_list translation_unit
 
-%type <number_int> INT_CONSTANT STRING_LITERAL pointer
+%type <number_int> INT_CONSTANT pointer
 %type <number_float> FLOAT_CONSTANT
-%type <string> IDENTIFIER
+%type <string> IDENTIFIER STRING_LITERAL
 %type <type_specifier> type_specifier declaration_specifiers
 %type <string_vec> struct_member_list
 
@@ -96,6 +96,9 @@ function_definition
 	: declaration_specifiers declarator compound_statement {
 		$$ = new FunctionDefinition($1, NodePtr($2), NodePtr($3));
 	}
+	| declaration_specifiers pointer declarator compound_statement {
+		$$ = new FunctionDefinition($1, NodePtr($3), NodePtr($4));
+	}
 	;
 
 declaration_specifiers
@@ -107,6 +110,7 @@ type_specifier
 	| FLOAT { $$ = TypeSpecifier::FLOAT; }
 	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
 	| CHAR { $$ = TypeSpecifier::CHAR; }
+	| VOID { $$ = TypeSpecifier::VOID; }
 	;
 
 declarator
@@ -244,6 +248,10 @@ primary_expression
 	| FLOAT_CONSTANT { $$ = new FloatConstant($1); }
 	| IDENTIFIER {
 		$$ = new Identifier(std::move(*$1));
+		delete $1;
+	}
+	| STRING_LITERAL {
+		$$ = new StringLiteral(std::move(*$1));
 		delete $1;
 	}
 	;

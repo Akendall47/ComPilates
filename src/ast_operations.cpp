@@ -52,7 +52,13 @@ void AddressOf::Print(std::ostream& stream) const {
 // *p; load p's value (an address), then load the int at that address
 void Deref::EmitRISC(std::ostream& stream, Context& context) const {
   operand_->EmitRISC(stream, context);  // a0 = the pointer value
-  stream << "  lw      a0, 0(a0)\n";    // a0 = *ptr
+  bool is_char = false;
+  if (auto* id = dynamic_cast<const Identifier*>(operand_.get())) {
+    auto it = context.local_types.find(id->GetName());
+    if (it != context.local_types.end())
+      is_char = (it->second.base == TypeSpecifier::CHAR);
+  }
+  stream << (is_char ? "  lbu     a0, 0(a0)\n" : "  lw      a0, 0(a0)\n");
 }
 
 void Deref::Print(std::ostream& stream) const {
