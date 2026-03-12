@@ -96,6 +96,9 @@ function_definition
 	: declaration_specifiers declarator compound_statement {
 		$$ = new FunctionDefinition($1, NodePtr($2), NodePtr($3));
 	}
+	| declaration_specifiers pointer declarator compound_statement {
+		$$ = new FunctionDefinition($1, NodePtr($3), NodePtr($4));
+	}
 	;
 
 declaration_specifiers
@@ -107,6 +110,7 @@ type_specifier
 	| FLOAT { $$ = TypeSpecifier::FLOAT; }
 	| DOUBLE { $$ = TypeSpecifier::DOUBLE; }
 	| CHAR { $$ = TypeSpecifier::CHAR; }
+	| VOID { $$ = TypeSpecifier::VOID; }
 	;
 
 declarator
