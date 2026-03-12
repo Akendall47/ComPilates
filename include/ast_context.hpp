@@ -65,7 +65,9 @@ class Context {
                     int array_length = 1, int pointer_depth = 0) {
     int element_size = GetTypeSize(type);
     int total_size = element_size * array_length;
-    next_local_offset -= total_size;
+    // round up to 4 byte alignment so each slot is properly aligned on stack
+    int alloc_size = (total_size + 3) & ~3;
+    next_local_offset -= alloc_size;
     locals[name] = next_local_offset;
     local_types[name] = QualifiedType{type, pointer_depth};
     return next_local_offset;
