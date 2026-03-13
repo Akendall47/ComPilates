@@ -65,6 +65,11 @@ void FunctionDefinition::EmitRISC(std::ostream& stream,
   if (compound_statement_ != nullptr) {
     compound_statement_->EmitRISC(stream, context);
   }
+  // fallthrough epilogue for void functions (or missing return)
+  if (declaration_specifiers_ == TypeSpecifier::VOID) {
+    context.EmitEpilogue(stream);
+    stream << "ret\n";
+  }
 }
 
 void FunctionDefinition::Print(std::ostream& stream) const {

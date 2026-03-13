@@ -22,7 +22,7 @@ FS  (f|F|l|L)
 IS  (u|U|l|L)*
 
 %%
-"/*"			{/* consumes comment - TODO you might want to process and emit it in your assembly for debugging */}
+"/*"([^*]|\*+[^*/])*\*+"/"	{ /* block comment — consume everything up to closing */ }
 
 "auto"			{return(AUTO);}
 "break"			{return(BREAK);}
@@ -70,16 +70,35 @@ IS  (u|U|l|L)*
     return(IDENTIFIER);
 }
 
-0[xX]{H}+{IS}?		{yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
+0[xX]{H}+{IS}?		{yylval.number_int = (int)(unsigned int)strtoul(yytext, NULL, 0); return(INT_CONSTANT);}
 0{D}+{IS}?		    {yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
 {D}+{IS}?		      {yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
-L?'(\\.|[^\\'])+'	{yylval.number_int = (int)strtol(yytext, NULL, 0); return(INT_CONSTANT);}
+L?'(\\.|[^\\'])+'	{
+  const char* p = yytext;
+  if (*p == 'L') p++;  // skip L prefix if present
+  p++;                  // skip opening '
+  if (*p == '\\') {
+    p++;
+    switch (*p) {
+      case 'n':  yylval.number_int = '\n'; break;
+      case 't':  yylval.number_int = '\t'; break;
+      case 'r':  yylval.number_int = '\r'; break;
+      case '0':  yylval.number_int = '\0'; break;
+      case '\\': yylval.number_int = '\\'; break;
+      case '\'': yylval.number_int = '\''; break;
+      default:   yylval.number_int = *p;   break;
+    }
+  } else {
+    yylval.number_int = (unsigned char)*p;
+  }
+  return(INT_CONSTANT);
+}
 
 {D}+{E}{FS}?		        {yylval.number_float = strtod(yytext, NULL); return(FLOAT_CONSTANT);}
 {D}*"."{D}+({E})?{FS}?	{yylval.number_float = strtod(yytext, NULL); return(FLOAT_CONSTANT);}
 {D}+"."{D}*({E})?{FS}?	{yylval.number_float = strtod(yytext, NULL); return(FLOAT_CONSTANT);}
 
-L?\"(\\.|[^\\"])*\"	{/* TODO process string literal */; return(STRING_LITERAL);}
+L?\"(\\.|[^\\"])*\"	{yylval.string = new std::string(yytext); return(STRING_LITERAL);}
 
 "..."      {return(ELLIPSIS);}
 ">>="			 {return(RIGHT_ASSIGN);}

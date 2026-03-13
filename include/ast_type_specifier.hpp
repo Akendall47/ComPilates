@@ -5,7 +5,11 @@
 
 namespace ast {
 
-enum class TypeSpecifier { INT, FLOAT, DOUBLE };
+enum class TypeSpecifier { INT, UINT, FLOAT, DOUBLE, CHAR, UCHAR, VOID };
+
+inline bool IsUnsigned(TypeSpecifier t) {
+  return t == TypeSpecifier::UINT || t == TypeSpecifier::UCHAR;
+}
 
 // QualifiedType: base + ptr depth e.g. int*, {INT, 1}
 // ie the type + extra quals like ptr depth etc etc
@@ -14,7 +18,9 @@ struct QualifiedType {
   int pointer_depth = 0;
 
   bool is_pointer() const { return pointer_depth > 0; }
-  int pointee_size() const { return 4; }  // only int for now
+  int pointee_size() const {
+    return (base == TypeSpecifier::CHAR || base == TypeSpecifier::UCHAR) ? 1 : 4;
+  }
   int size() const { return 4; }
 };
 
@@ -28,6 +34,14 @@ LogStream& operator<<(LogStream& ls, const TypeSpecifier& type) {
         return "float";
       case TypeSpecifier::DOUBLE:
         return "double";
+      case TypeSpecifier::CHAR:
+        return "char";
+      case TypeSpecifier::UINT:
+        return "unsigned int";
+      case TypeSpecifier::UCHAR:
+        return "unsigned char";
+      case TypeSpecifier::VOID:
+        return "void";
     }
     throw std::runtime_error("Unexpected type specifier");
   };

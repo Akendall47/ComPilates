@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "ast_type_specifier.hpp"
 
@@ -14,16 +15,33 @@ extern int global_typedef_pointer_depth;
 extern std::unordered_map<std::string, int> global_enum_names;
 extern int global_enum_next_value;
 namespace ast {
+struct StructMember {
+  std::string name;
+  int offset;  // byte offset from struct base
+  int size;    // bytes
+};
+
+struct StructDef {
+  std::vector<StructMember> members;
+  int total_size;  // bytes
+};
 
 class Context {
  public:
+  // struct type registry: struct name -> definition
+  std::unordered_map<std::string, StructDef> struct_types;
+
   std::string current_function;
   int stack_frame_size = 16;
 
-  // symbol table: name -> s0-relative offset
+  // symbol table: name -> s0-relative offset (base of struct for structs)
   std::unordered_map<std::string, int> locals;
+
   // type table: name -> QualifiedType (base type + pointer depth)
   std::unordered_map<std::string, QualifiedType> local_types;
+
+  // struct instance name -> struct type name
+  std::unordered_map<std::string, std::string> local_struct_type;
 
   // global arrays declared at file scope
   std::unordered_set<std::string> globals;
@@ -40,8 +58,11 @@ class Context {
     switch (type) {
       case TypeSpecifier::DOUBLE:
         return 8;
+      case TypeSpecifier::CHAR:
+      case TypeSpecifier::UCHAR:
+        return 1;
       default:
-        return 4;  // int, float
+        return 4;  // int, uint, float
     }
   }
 
@@ -51,9 +72,22 @@ class Context {
                     int array_length = 1, int pointer_depth = 0) {
     int element_size = GetTypeSize(type);
     int total_size = element_size * array_length;
-    next_local_offset -= total_size;
+
+    // round up to 4 byte alignment so each slot is properly aligned on stack
+    int alloc_size = (total_size + 3) & ~3;
+    next_local_offset -= alloc_size;
     locals[name] = next_local_offset;
     local_types[name] = QualifiedType{type, pointer_depth};
+    return next_local_offset;
+  }
+
+  // alloc stack space for a struct instance
+  int AllocateStruct(const std::string& var_name,
+                     const std::string& struct_type_name) {
+    const StructDef& def = struct_types.at(struct_type_name);
+    next_local_offset -= def.total_size;
+    locals[var_name] = next_local_offset;
+    local_struct_type[var_name] = struct_type_name;
     return next_local_offset;
   }
 

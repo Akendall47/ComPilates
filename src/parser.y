@@ -24,13 +24,14 @@
 //lexer-parser bridge
 //eg yylval.string lives in string field as temp spot
 %union {
-  Node*				    node;
-  NodeList*			  node_list;
-  int          		number_int;
-  double       		number_float;
-  std::string*		string;
-  TypeSpecifier 	type_specifier;
-  yytokentype  		token;
+  Node*				        node;
+  NodeList*			        node_list;
+  int          		        number_int;
+  double       		        number_float;
+  std::string*		        string;
+  TypeSpecifier 	        type_specifier;
+  yytokentype  		        token;
+  std::vector<std::string>* string_vec;
 }
 
 %token IDENTIFIER INT_CONSTANT FLOAT_CONSTANT STRING_LITERAL
@@ -53,10 +54,11 @@
 
 %type <node_list> statement_list parameter_list argument_expression_list translation_unit
 
-%type <number_int> INT_CONSTANT STRING_LITERAL
+%type <number_int> INT_CONSTANT pointer
 %type <number_float> FLOAT_CONSTANT
-%type <string> IDENTIFIER TYPE_NAME
+%type <string> IDENTIFIER STRING_LITERAL TYPE_NAME
 %type <type_specifier> type_specifier declaration_specifiers
+%type <string_vec> struct_member_list
 
 
 %start ROOT
@@ -76,11 +78,27 @@ translation_unit
 external_declaration
 	: function_definition { $$ = $1; }
   | declaration { $$ = $1; }
+  | STRUCT IDENTIFIER '{' struct_member_list '}' ';' {
+      $$ = new StructDefinition(*$2, std::move(*$4));
+      delete $2; delete $4;
+  }
+	;
+
+struct_member_list
+	: type_specifier IDENTIFIER ';' {
+		$$ = new std::vector<std::string>(); $$->push_back(*$2); delete $2;
+	}
+	| struct_member_list type_specifier IDENTIFIER ';' {
+		$1->push_back(*$3); delete $3; $$ = $1;
+	}
 	;
 
 function_definition
 	: declaration_specifiers declarator compound_statement {
 		$$ = new FunctionDefinition($1, NodePtr($2), NodePtr($3));
+	}
+	| declaration_specifiers pointer declarator compound_statement {
+		$$ = new FunctionDefinition($1, NodePtr($3), NodePtr($4));
 	}
 	;
 
@@ -124,6 +142,11 @@ enumerator
 		$$ = nullptr;
 		delete $1;
 	}
+	| CHAR { $$ = TypeSpecifier::CHAR; }
+	| VOID { $$ = TypeSpecifier::VOID; }
+	| UNSIGNED INT { $$ = TypeSpecifier::UINT; }
+	| UNSIGNED CHAR { $$ = TypeSpecifier::UCHAR; }
+	| UNSIGNED { $$ = TypeSpecifier::UINT; }
 	;
 
 declarator
@@ -150,16 +173,19 @@ parameter_list
 
 //reminder eg: "int x" - $1=type, $2=name, return name node
 
-// I fixed reminder by making GetName to return node name
+pointer
+	: '*'         { $$ = 1; }
+	| '*' pointer { $$ = $2 + 1; }
+	;
+
 parameter_declaration
 	: declaration_specifiers declarator {
 		Identifier* id = dynamic_cast<Identifier*>($2);
 		$$ = new Declaration($1, id->GetName(), global_typedef_pointer_depth);
 		delete $2;
 	}
-	| declaration_specifiers '*' IDENTIFIER {
-		// int *p parameter , ptr depth 1
-		$$ = new Declaration($1, *$3, 1 + global_typedef_pointer_depth);
+	| declaration_specifiers pointer IDENTIFIER {
+		$$ = new Declaration($1, *$3, $2 + global_typedef_pointer_depth);
 		delete $3;
 	}
 	;
@@ -199,19 +225,22 @@ declaration
 		$$ = new InitDeclaration($1, id->GetName(), global_typedef_pointer_depth, NodePtr($4));
 		delete $2;
 	}
-	| declaration_specifiers '*' IDENTIFIER ';' {
-		// int *p;ptr declaration, depth=1
-		$$ = new Declaration($1, *$3, 1);
+	| declaration_specifiers pointer IDENTIFIER ';' {
+		$$ = new Declaration($1, *$3, $2);
 		delete $3;
 	}
-	| declaration_specifiers '*' IDENTIFIER '=' assignment_expression ';' {
-		$$ = new InitDeclaration($1, *$3, 1, NodePtr($5));
+	| declaration_specifiers pointer IDENTIFIER '=' assignment_expression ';' {
+		$$ = new InitDeclaration($1, *$3, $2, NodePtr($5));
 		delete $3;
 	}
 	| declaration_specifiers IDENTIFIER '[' INT_CONSTANT ']' ';' {
-		// int x[8]; ArrayDeclaration(INT, "x", 8)
 		$$ = new ArrayDeclaration($1, *$2, $4);
 		delete $2;
+	}
+	| STRUCT IDENTIFIER IDENTIFIER ';' {
+		// struct x z;
+		$$ = new StructDeclaration(*$2, *$3);
+		delete $2; delete $3;
 	}
 	;
 
@@ -276,6 +305,10 @@ primary_expression
 		$$ = new Identifier(std::move(*$1));
 		delete $1;
 	}
+	| STRING_LITERAL {
+		$$ = new StringLiteral(std::move(*$1));
+		delete $1;
+	}
 	;
 
 
@@ -301,6 +334,11 @@ postfix_expression
 	}
 	| postfix_expression INC_OP { $$ = new PostfixOp("++", NodePtr($1)); }
 	| postfix_expression DEC_OP { $$ = new PostfixOp("--", NodePtr($1)); }
+	| postfix_expression '.' IDENTIFIER {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new StructMemberGet(id->GetName(), *$3);
+		delete $1; delete $3;
+	}
 	;
 
 argument_expression_list
@@ -323,8 +361,18 @@ unary_expression
 		delete $2;
 	}
 	| '*' cast_expression {
-		// *p as rvalue, deref
 		$$ = new Deref(NodePtr($2));
+	}
+	| SIZEOF '(' IDENTIFIER ')' {
+		$$ = new SizeOf(*$3);
+		delete $3;
+	}
+	| SIZEOF '(' type_specifier ')' {
+		$$ = new SizeOfType($3);
+	}
+	| SIZEOF '(' type_specifier pointer ')' {
+		(void)$3; (void)$4;
+		$$ = new SizeOfPointer();
 	}
 	;
 
@@ -409,10 +457,15 @@ assignment_expression
 		}
 	}
 	| postfix_expression '[' expression ']' '=' assignment_expression {
-		// x[i] = rhs: extract name, build array assingment
 		Identifier* id = dynamic_cast<Identifier*>($1);
 		$$ = new ArrayAssignment(id->GetName(), NodePtr($3), NodePtr($6));
 		delete $1;
+	}
+	| postfix_expression '.' IDENTIFIER '=' assignment_expression {
+		// z.y = rhs
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new StructMemberSet(id->GetName(), *$3, NodePtr($5));
+		delete $1; delete $3;
 	}
 	;
 

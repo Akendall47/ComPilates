@@ -76,7 +76,8 @@ void ArraySubscript::EmitRISC(std::ostream& stream, Context& context) const {
       (type_it != context.local_types.end() && type_it->second.is_pointer());
 
   if (is_ptr) {
-    // ptr, load the ptr value, then add scaled index
+    bool is_char = (type_it->second.base == TypeSpecifier::CHAR);
+    const char* load = is_char ? "lbu" : "lw";
     int ptr_offset = context.locals.at(name_);
     stream << "lw      t2, " << ptr_offset << "(s0)\n";  // t2 = ptr value
     if (auto* c = dynamic_cast<const IntConstant*>(index_.get())) {
@@ -88,19 +89,22 @@ void ArraySubscript::EmitRISC(std::ostream& stream, Context& context) const {
       stream << "mul     a0, a0, t1\n";
       stream << "add     t2, t2, a0\n";
     }
-    stream << "lw      a0, 0(t2)\n";
+    stream << load << "     a0, 0(t2)\n";
     return;
   }
 
   // local array; base is s0-relative
+  bool is_char = (type_it != context.local_types.end() &&
+                  type_it->second.base == TypeSpecifier::CHAR);
+  const char* load = is_char ? "lbu" : "lw";
   int base = context.locals.at(name_);
   if (auto* c = dynamic_cast<const IntConstant*>(index_.get())) {
     int offset = base + c->GetValue() * 4;
-    stream << "lw      a0, " << offset << "(s0)\n";
+    stream << load << "     a0, " << offset << "(s0)\n";
     return;
   }
   EmitArrayAddress(stream, context, name_, *index_);
-  stream << "lw      a0, 0(t2)\n";
+  stream << load << "     a0, 0(t2)\n";
 }
 
 void ArraySubscript::Print(std::ostream& stream) const {

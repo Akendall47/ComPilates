@@ -9,7 +9,7 @@ void Declaration::EmitRISC(std::ostream&, Context& context) const {
 }
 
 void Declaration::Print(std::ostream& stream) const {
-  stream << type_ << " " << name_ << ";\n";
+  stream << type_ << " " << std::string(pointer_depth_, '*') << name_ << ";\n";
 }
 
 TypeSpecifier Declaration::GetType(Context&) const { return type_; }
@@ -18,11 +18,16 @@ TypeSpecifier Declaration::GetType(Context&) const { return type_; }
 void InitDeclaration::EmitRISC(std::ostream& stream, Context& context) const {
   int offset = context.AllocateLocal(name_, type_, 1, pointer_depth_);
   init_->EmitRISC(stream, context);
-  stream << "  sw      a0, " << offset << "(s0)\n";
+  if (type_ == TypeSpecifier::FLOAT)
+    stream << "  fsw     fa0, " << offset << "(s0)\n";
+  else if (type_ == TypeSpecifier::DOUBLE)
+    stream << "  fsd     fa0, " << offset << "(s0)\n";
+  else
+    stream << "  sw      a0, " << offset << "(s0)\n";
 }
 
 void InitDeclaration::Print(std::ostream& stream) const {
-  stream << type_ << " " << name_ << " = ";
+  stream << type_ << " " << std::string(pointer_depth_, '*') << name_ << " = ";
   init_->Print(stream);
   stream << ";\n";
 }
