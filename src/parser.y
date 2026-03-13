@@ -110,6 +110,11 @@ type_specifier
 	: INT { $$ = TypeSpecifier::INT; global_typedef_pointer_depth = 0; }
 	| FLOAT { $$ = TypeSpecifier::FLOAT; global_typedef_pointer_depth = 0; }
 	| DOUBLE { $$ = TypeSpecifier::DOUBLE; global_typedef_pointer_depth = 0; }
+	| CHAR { $$ = TypeSpecifier::CHAR; global_typedef_pointer_depth = 0; }
+	| VOID { $$ = TypeSpecifier::VOID; global_typedef_pointer_depth = 0; }
+	| UNSIGNED INT { $$ = TypeSpecifier::UINT; global_typedef_pointer_depth = 0; }
+	| UNSIGNED CHAR { $$ = TypeSpecifier::UCHAR; global_typedef_pointer_depth = 0; }
+	| UNSIGNED { $$ = TypeSpecifier::UINT; }
 	| TYPE_NAME {
 		auto& qt = global_type_aliases[*$1];
         $$ = qt.base;
@@ -142,11 +147,6 @@ enumerator
 		$$ = nullptr;
 		delete $1;
 	}
-	| CHAR { $$ = TypeSpecifier::CHAR; }
-	| VOID { $$ = TypeSpecifier::VOID; }
-	| UNSIGNED INT { $$ = TypeSpecifier::UINT; }
-	| UNSIGNED CHAR { $$ = TypeSpecifier::UCHAR; }
-	| UNSIGNED { $$ = TypeSpecifier::UINT; }
 	;
 
 declarator
