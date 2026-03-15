@@ -9,7 +9,7 @@ void ReturnStatement::EmitRISC(std::ostream& stream, Context& context) const {
   // Rewrote some return code to fix it to a0 rather than a5
 
   context.EmitEpilogue(stream);
-  stream << "ret" <<std::endl;  // epilogue completes, jump back to caller via ra
+  stream << "ret" << std::endl;  // epilogue completes, jump back to caller via ra
 }
 
 void ReturnStatement::Print(std::ostream& stream) const {
@@ -27,9 +27,7 @@ void BreakStatement::EmitRISC(std::ostream& stream, Context& context) const {
   }
 }
 
-void BreakStatement::Print(std::ostream& stream) const {
-  stream << "break;\n";
-}
+void BreakStatement::Print(std::ostream& stream) const { stream << "break;\n"; }
 
 void ContinueStatement::EmitRISC(std::ostream& stream, Context& context) const {
   if (context.HasContinueTarget()) {

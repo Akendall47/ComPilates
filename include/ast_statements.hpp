@@ -4,6 +4,21 @@
 
 namespace ast {
 
+class CompoundStatement : public Node {
+ private:
+  NodePtr statements_;
+
+ public:
+  CompoundStatement(NodePtr statements)
+      : statements_(std::move(statements)) {}
+
+  const Node* GetStatements() const { return statements_.get(); }
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+  int CountDeclarations() const override;
+};
+
 class IfStatement : public Node {
  private:  // the data
   NodePtr condition_;
@@ -57,7 +72,8 @@ class CaseStatement : public Node {
   NodePtr statement_;
 
  public:
-  CaseStatement(NodePtr expression, NodePtr statement) : expression_(std::move(expression)), statement_(std::move(statement)) {}
+  CaseStatement(NodePtr expression, NodePtr statement)
+      : expression_(std::move(expression)), statement_(std::move(statement)) {}
 
   const Node* GetExpression() const { return expression_.get(); }
   const Node* GetStatement() const { return statement_.get(); }
@@ -71,7 +87,8 @@ class DefaultStatement : public Node {
   NodePtr statement_;
 
  public:
-  explicit DefaultStatement(NodePtr statement) : statement_(std::move(statement)) {}
+  explicit DefaultStatement(NodePtr statement)
+      : statement_(std::move(statement)) {}
 
   const Node* GetStatement() const { return statement_.get(); }
 
@@ -85,7 +102,8 @@ class SwitchStatement : public Node {
   NodePtr statement_;
 
  public:
-  SwitchStatement(NodePtr expression, NodePtr statement) : expression_(std::move(expression)), statement_(std::move(statement)) {}
+  SwitchStatement(NodePtr expression, NodePtr statement)
+      : expression_(std::move(expression)), statement_(std::move(statement)) {}
 
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;

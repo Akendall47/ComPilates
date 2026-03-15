@@ -290,8 +290,8 @@ labeled_statement
 	;
 
 compound_statement
-	: '{' statement_list '}' { $$ = $2; }
-	| '{' '}' { $$ = nullptr; }
+	: '{' statement_list '}' { $$ = new CompoundStatement(NodePtr($2)); }
+	| '{' '}' { $$ = new CompoundStatement(nullptr); }
 	;
 
 statement_list
@@ -321,6 +321,7 @@ primary_expression
 		$$ = new IntConstant($1);
 	}
 	| FLOAT_CONSTANT { $$ = new FloatConstant($1); }
+	| '(' expression ')' { $$ = $2; }
 	| IDENTIFIER {
 		$$ = new Identifier(std::move(*$1));
 		delete $1;
@@ -475,6 +476,56 @@ assignment_expression
 			$$ = new Assignment(id->GetName(), NodePtr($3));
 			delete $1;
 		}
+	}
+	| unary_expression ADD_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "+", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression SUB_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "-", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression MUL_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "*", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression DIV_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "/", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression MOD_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "%", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression LEFT_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "<<", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression RIGHT_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), ">>", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression AND_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "&", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression XOR_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "^", NodePtr($3))));
+		delete $1;
+	}
+	| unary_expression OR_ASSIGN assignment_expression {
+		Identifier* id = dynamic_cast<Identifier*>($1);
+		$$ = new Assignment(id->GetName(), NodePtr(new BinaryOp(NodePtr(new Identifier(id->GetName())), "|", NodePtr($3))));
+		delete $1;
 	}
 	| postfix_expression '[' expression ']' '=' assignment_expression {
 		Identifier* id = dynamic_cast<Identifier*>($1);

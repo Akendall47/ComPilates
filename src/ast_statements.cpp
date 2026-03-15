@@ -5,9 +5,30 @@
 namespace ast {
 
 struct CaseTarget {
-    const CaseStatement* node;
-    int label;
-  };
+  const CaseStatement* node;
+  int label;
+};
+
+void CompoundStatement::EmitRISC(std::ostream& stream, Context& context) const {
+  context.EnterBlock();
+  if (statements_ != nullptr) {
+    statements_->EmitRISC(stream, context);
+  }
+  context.ExitBlock();
+}
+
+void CompoundStatement::Print(std::ostream& stream) const {
+  if (statements_ != nullptr) {
+    statements_->Print(stream);
+  }
+}
+
+int CompoundStatement::CountDeclarations() const {
+  if (statements_ == nullptr) {
+    return 0;
+  }
+  return statements_->CountDeclarations();
+}
 
 // IF
 
@@ -154,26 +175,36 @@ void DefaultStatement::Print(std::ostream& stream) const {
 void SwitchStatement::EmitRISC(std::ostream& stream, Context& context) const {
   int end_label = context.AllocateLabel();
 
+  const Node* switch_body = statement_.get();
+  if (const auto* block = dynamic_cast<const CompoundStatement*>(switch_body)) {
+    switch_body = block->GetStatements();
+  }
+
   const DefaultStatement* default_node = nullptr;
   int default_label = -1;
   std::vector<CaseTarget> cases;
 
   // small stack to get labels
   std::vector<const Node*> collect_stack;
-  collect_stack.push_back(statement_.get());
+  collect_stack.push_back(switch_body);
   while (!collect_stack.empty()) {
     const Node* node = collect_stack.back();
     collect_stack.pop_back();
 
-    if (node == nullptr){
+    if (node == nullptr) {
       continue;
     }
 
-    if (const auto* list = dynamic_cast<const NodeList*>(node)){
+    if (const auto* list = dynamic_cast<const NodeList*>(node)) {
       const auto& nodes = list->GetNodes();
       for (size_t i = nodes.size(); i > 0; --i) {
         collect_stack.push_back(nodes[i - 1].get());
       }
+      continue;
+    }
+
+    if (const auto* block = dynamic_cast<const CompoundStatement*>(node)) {
+      collect_stack.push_back(block->GetStatements());
       continue;
     }
 
@@ -183,7 +214,8 @@ void SwitchStatement::EmitRISC(std::ostream& stream, Context& context) const {
       continue;
     }
 
-    if (const auto* default_stmt = dynamic_cast<const DefaultStatement*>(node)) {
+    if (const auto* default_stmt =
+            dynamic_cast<const DefaultStatement*>(node)) {
       if (default_node == nullptr) {
         default_node = default_stmt;
         default_label = context.AllocateLabel();
@@ -219,20 +251,42 @@ void SwitchStatement::EmitRISC(std::ostream& stream, Context& context) const {
   }
 
   context.PushBreakTarget(end_label);
-  std::vector<const Node*> emit_stack;
-  emit_stack.push_back(statement_.get());
+  struct EmitBlock {
+    const Node* node;
+    bool exit_scope;
+  };
+
+  std::vector<EmitBlock> emit_stack;
+  emit_stack.push_back(EmitBlock{switch_body, false});
   while (!emit_stack.empty()) {
-    const Node* node = emit_stack.back();
+    EmitBlock item = emit_stack.back();
     emit_stack.pop_back();
 
-    if (node == nullptr) {continue;}
+    if (item.exit_scope) {
+      context.ExitBlock();
+      continue;
+    }
 
-    if (const auto* list = dynamic_cast<const NodeList*>(node)){
+    const Node* node = item.node;
+
+    if (node == nullptr) {
+      continue;
+    }
+
+    if (const auto* list = dynamic_cast<const NodeList*>(node)) {
       const auto& nodes = list->GetNodes();
 
       for (size_t i = nodes.size(); i > 0; --i) {
-        emit_stack.push_back(nodes[i - 1].get());
-      } continue;
+        emit_stack.push_back(EmitBlock{nodes[i - 1].get(), false});
+      }
+      continue;
+    }
+
+    if (const auto* block = dynamic_cast<const CompoundStatement*>(node)) {
+      context.EnterBlock();
+      emit_stack.push_back(EmitBlock{nullptr, true});
+      emit_stack.push_back(EmitBlock{block->GetStatements(), false});
+      continue;
     }
 
     if (const auto* statement = dynamic_cast<const CaseStatement*>(node)) {
@@ -246,15 +300,16 @@ void SwitchStatement::EmitRISC(std::ostream& stream, Context& context) const {
       if (case_label >= 0) {
         stream << ".Lcase_" << case_label << ":\n";
       }
-      emit_stack.push_back(statement->GetStatement());
+      emit_stack.push_back(EmitBlock{statement->GetStatement(), false});
       continue;
     }
 
-    if (const auto* default_stmt = dynamic_cast<const DefaultStatement*>(node)) {
+    if (const auto* default_stmt =
+            dynamic_cast<const DefaultStatement*>(node)) {
       if (default_node == default_stmt && default_label >= 0) {
         stream << ".Ldefault_" << default_label << ":\n";
       }
-      emit_stack.push_back(default_stmt->GetStatement());
+      emit_stack.push_back(EmitBlock{default_stmt->GetStatement(), false});
       continue;
     }
 

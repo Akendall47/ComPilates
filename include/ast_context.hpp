@@ -9,7 +9,7 @@
 #include "ast_type_specifier.hpp"
 
 extern std::unordered_set<std::string> global_typedef_names;  // Need to make global so parser can see
-extern std::unordered_map<std::string, ast::QualifiedType> global_type_aliases; // type alias table for type def
+extern std::unordered_map<std::string, ast::QualifiedType> global_type_aliases;  // type alias table for type def
 extern int global_typedef_pointer_depth;
 
 extern std::unordered_map<std::string, int> global_enum_names;
@@ -60,12 +60,39 @@ class Context {
   std::vector<int> break_targets;
   std::vector<ContinueTarget> continue_targets;
 
-  void PushBreakTarget(int label){
-    break_targets.push_back(label);
+  // Breaking up code into { } representation to be able to process them
+  // seperately
+  std::vector<std::unordered_map<std::string, int>> locals_block_stack;
+  std::vector<std::unordered_map<std::string, QualifiedType>>
+      local_types_block_stack;
+  std::vector<std::unordered_map<std::string, std::string>>
+      local_struct_type_scope_stack;
+
+  void EnterBlock(){
+    locals_block_stack.push_back(locals);
+    local_types_block_stack.push_back(local_types);
+    local_struct_type_scope_stack.push_back(local_struct_type);
   }
 
-  void PopBreakTarget(){
-    if (!break_targets.empty()){
+  void ExitBlock(){
+    if (!locals_block_stack.empty()){
+      locals = std::move(locals_block_stack.back());
+      locals_block_stack.pop_back();
+    }
+    if (!local_types_block_stack.empty()){
+      local_types = std::move(local_types_block_stack.back());
+      local_types_block_stack.pop_back();
+    }
+    if (!local_struct_type_scope_stack.empty()){
+      local_struct_type = std::move(local_struct_type_scope_stack.back());
+      local_struct_type_scope_stack.pop_back();
+    }
+  }
+
+  void PushBreakTarget(int label) { break_targets.push_back(label); }
+
+  void PopBreakTarget() {
+    if (!break_targets.empty()) {
       break_targets.pop_back();
     }
   }
@@ -74,7 +101,7 @@ class Context {
   bool HasBreakTarget() const { return !break_targets.empty(); }
   int GetBreakTarget() const { return break_targets.back(); }
 
-  void PushContinueTarget(int label, bool update = false){
+  void PushContinueTarget(int label, bool update = false) {
     continue_targets.push_back(ContinueTarget{label, update});
   }
   void PopContinueTarget() {
@@ -82,7 +109,7 @@ class Context {
       continue_targets.pop_back();
     }
   }
-  
+
   bool HasContinueTarget() const { return !continue_targets.empty(); }
   ContinueTarget GetContinueTarget() const { return continue_targets.back(); }
 
