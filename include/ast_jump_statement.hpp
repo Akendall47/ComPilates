@@ -15,4 +15,20 @@ class ReturnStatement : public Node {
   void Print(std::ostream& stream) const override;
 };
 
+class BreakStatement : public Node {
+ public:
+  BreakStatement(){};
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
+class ContinueStatement : public Node {
+ public:
+  ContinueStatement(){};
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
 }  // namespace ast

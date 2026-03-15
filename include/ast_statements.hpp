@@ -51,4 +51,44 @@ class ForStatement : public Node {
   void Print(std::ostream& stream) const override;
 };
 
+class CaseStatement : public Node {
+ private:
+  NodePtr expression_;
+  NodePtr statement_;
+
+ public:
+  CaseStatement(NodePtr expression, NodePtr statement) : expression_(std::move(expression)), statement_(std::move(statement)) {}
+
+  const Node* GetExpression() const { return expression_.get(); }
+  const Node* GetStatement() const { return statement_.get(); }
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
+class DefaultStatement : public Node {
+ private:
+  NodePtr statement_;
+
+ public:
+  explicit DefaultStatement(NodePtr statement) : statement_(std::move(statement)) {}
+
+  const Node* GetStatement() const { return statement_.get(); }
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
+class SwitchStatement : public Node {
+ private:
+  NodePtr expression_;
+  NodePtr statement_;
+
+ public:
+  SwitchStatement(NodePtr expression, NodePtr statement) : expression_(std::move(expression)), statement_(std::move(statement)) {}
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
 }  // namespace ast

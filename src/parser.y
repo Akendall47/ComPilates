@@ -49,6 +49,7 @@
 %type <node> conditional_expression assignment_expression expression declarator direct_declarator statement compound_statement jump_statement
 %type <node> parameter_declaration declaration
 %type <node> expression_statement selection_statement iteration_statement
+%type <node> labeled_statement
 %type <node> enum_specifier enumerator_list enumerator
 
 
@@ -255,6 +256,9 @@ selection_statement
 	| IF '(' expression ')' statement ELSE statement {
 		$$ = new IfStatement(NodePtr($3), NodePtr($5), NodePtr($7));
 	}
+	| SWITCH '(' expression ')' statement {
+		$$ = new SwitchStatement(NodePtr($3), NodePtr($5));
+	}
 	;
 
 iteration_statement
@@ -273,6 +277,16 @@ statement
 	| compound_statement { $$ = $1; }
 	| selection_statement { $$ = $1;}
 	| iteration_statement { $$ = $1; }
+	| labeled_statement { $$ = $1; }
+	;
+
+labeled_statement
+	: CASE expression ':' statement {
+		$$ = new CaseStatement(NodePtr($2), NodePtr($4));
+	}
+	| DEFAULT ':' statement {
+		$$ = new DefaultStatement(NodePtr($3));
+	}
 	;
 
 compound_statement
@@ -293,6 +307,12 @@ jump_statement
 	}
 	| RETURN expression ';' {
 		$$ = new ReturnStatement(NodePtr($2));
+	}
+	| BREAK ';' {
+		$$ = new BreakStatement();
+	}
+	| CONTINUE ';' {
+		$$ = new ContinueStatement();
 	}
 	;
 

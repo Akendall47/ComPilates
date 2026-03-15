@@ -26,6 +26,11 @@ struct StructDef {
   int total_size;  // bytes
 };
 
+struct ContinueTarget {
+  int label;
+  bool update;
+};
+
 class Context {
  public:
   // struct type registry: struct name -> definition
@@ -50,6 +55,36 @@ class Context {
   // label counter for control flow
   int label_count = 0;
   int AllocateLabel() { return label_count++; }
+
+  // vectors to store the next target after break and continue statements
+  std::vector<int> break_targets;
+  std::vector<ContinueTarget> continue_targets;
+
+  void PushBreakTarget(int label){
+    break_targets.push_back(label);
+  }
+
+  void PopBreakTarget(){
+    if (!break_targets.empty()){
+      break_targets.pop_back();
+    }
+  }
+
+  // Checks if statement includes break
+  bool HasBreakTarget() const { return !break_targets.empty(); }
+  int GetBreakTarget() const { return break_targets.back(); }
+
+  void PushContinueTarget(int label, bool update = false){
+    continue_targets.push_back(ContinueTarget{label, update});
+  }
+  void PopContinueTarget() {
+    if (!continue_targets.empty()) {
+      continue_targets.pop_back();
+    }
+  }
+  
+  bool HasContinueTarget() const { return !continue_targets.empty(); }
+  ContinueTarget GetContinueTarget() const { return continue_targets.back(); }
 
   // tracks next free byte offset from s0
   int next_local_offset = -8;
