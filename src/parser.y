@@ -372,6 +372,8 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
+	| INC_OP unary_expression { $$ = new PrefixOp("++", NodePtr($2)); }
+	| DEC_OP unary_expression { $$ = new PrefixOp("--", NodePtr($2)); }
 	| '-' cast_expression { $$ = new UnaryOp("-", NodePtr($2)); }
 	| '~' cast_expression { $$ = new UnaryOp("~", NodePtr($2)); }
 	| '!' cast_expression { $$ = new UnaryOp("!", NodePtr($2)); }

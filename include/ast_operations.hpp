@@ -75,8 +75,7 @@ class DerefAssign : public ast::Node {
   void Print(std::ostream& stream) const override;
 };
 
-// Posts:  x++, x--
-//  Operand must be an Identifier (lvalue). Loads, modifies, stores back.
+// x++, x-- , evaluates to the original value, then incr/decr
 class PostfixOp : public Node {
  private:
   NodePtr operand_;
@@ -90,4 +89,18 @@ class PostfixOp : public Node {
   void Print(std::ostream& stream) const override;
 };
 
-}
+// ++x, --x, incre,decre first, evaluates to the new value
+class PrefixOp : public Node {
+ private:
+  NodePtr operand_;
+  std::string op_;  // "++" or "--"
+
+ public:
+  PrefixOp(const std::string& op, NodePtr operand)
+      : operand_(std::move(operand)), op_(op) {}
+
+  void EmitRISC(std::ostream& stream, Context& context) const override;
+  void Print(std::ostream& stream) const override;
+};
+
+}  // namespace ast

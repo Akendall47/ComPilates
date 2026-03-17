@@ -16,13 +16,34 @@ void PostfixOp::EmitRISC(std::ostream& stream, Context& context) const {
   const auto& id = dynamic_cast<const Identifier&>(*operand_);
   int offset = context.locals.at(id.GetName());
 
-  stream << "lw      a0, " << offset << "(s0)\n";
+  // load original value — this is what the expression evaluates to
+  stream << "  lw      a0, " << offset << "(s0)\n";
+  // compute new value in t1, store back, leave original in a0
   if (op_ == "++") {
-    stream << "addi    a0, a0, 1\n";
+    stream << "  addi    t1, a0, 1\n";
   } else {
-    stream << "addi    a0, a0, -1\n";
+    stream << "  addi    t1, a0, -1\n";
   }
-  stream << "sw      a0, " << offset << "(s0)\n";
+  stream << "  sw      t1, " << offset << "(s0)\n";
+}
+
+void PrefixOp::EmitRISC(std::ostream& stream, Context& context) const {
+  const auto& id = dynamic_cast<const Identifier&>(*operand_);
+  int offset = context.locals.at(id.GetName());
+
+  // modify first, then return the new value
+  stream << "  lw      a0, " << offset << "(s0)\n";
+  if (op_ == "++") {
+    stream << "  addi    a0, a0, 1\n";
+  } else {
+    stream << "  addi    a0, a0, -1\n";
+  }
+  stream << "  sw      a0, " << offset << "(s0)\n";
+}
+
+void PrefixOp::Print(std::ostream& stream) const {
+  stream << op_;
+  operand_->Print(stream);
 }
 
 void UnaryOp::Print(std::ostream& stream) const {
