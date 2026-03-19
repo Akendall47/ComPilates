@@ -33,6 +33,10 @@ class IfStatement : public Node {
 
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  int CountDeclarations() const override {
+    return then_->CountDeclarations() +
+           (else_ ? else_->CountDeclarations() : 0);
+  }
 };
 
 class WhileStatement : public Node {
@@ -46,6 +50,9 @@ class WhileStatement : public Node {
 
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  int CountDeclarations() const override {
+    return body_ ? body_->CountDeclarations() : 0;
+  }
 };
 
 class ForStatement : public Node {
@@ -64,6 +71,10 @@ class ForStatement : public Node {
 
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  int CountDeclarations() const override {
+    return (init_ ? init_->CountDeclarations() : 0) +
+           (body_ ? body_->CountDeclarations() : 0);
+  }
 };
 
 class CaseStatement : public Node {
@@ -107,6 +118,9 @@ class SwitchStatement : public Node {
 
   void EmitRISC(std::ostream& stream, Context& context) const override;
   void Print(std::ostream& stream) const override;
+  int CountDeclarations() const override {
+    return statement_ ? statement_->CountDeclarations() : 0;
+  }
 };
 
 }  // namespace ast
