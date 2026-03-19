@@ -162,6 +162,9 @@ direct_declarator
 	| direct_declarator '(' ')' {
 		$$ = new DirectDeclarator(NodePtr($1));
 	}
+	| direct_declarator '(' VOID ')' {
+		$$ = new DirectDeclarator(NodePtr($1));
+	}
 	| direct_declarator '(' parameter_list ')'{
 		$$ = new DirectDeclarator(NodePtr($1), NodePtr($3));
 	}
