@@ -1,20 +1,20 @@
 #include "ast_function_definition.hpp"
 
-#include "ast_direct_declarator.hpp"
 #include "ast_declaration.hpp"
+#include "ast_direct_declarator.hpp"
 
 namespace ast {
 
 void FunctionDefinition::EmitRISC(std::ostream& stream,
                                   Context& context) const {
-
   // If function is empty output nothing and return
-  if (compound_statement_ == nullptr){
+  if (compound_statement_ == nullptr) {
     return;
   }
   // extract func name via GetName() — declarator_ is always a DirectDeclarator
   auto& dd = dynamic_cast<const DirectDeclarator&>(*declarator_);
   context.current_function = dd.GetName();
+  context.Reset();  // clear locals/offsets from any previous function
 
   stream << ".text\n";
   stream << ".globl " << context.current_function << "\n";
@@ -29,7 +29,9 @@ void FunctionDefinition::EmitRISC(std::ostream& stream,
 
   // Get number of paramets as well as locals to take off stake frame
   int num_params = params ? params->CountDeclarations() : 0;
-  int num_locals =(compound_statement_ ? compound_statement_->CountDeclarations() : 0) + num_params;
+  int num_locals =
+      (compound_statement_ ? compound_statement_->CountDeclarations() : 0) +
+      num_params;
 
   context.stack_frame_size = (16 + num_locals * 4 + 15) & ~15;
   context.EmitPrologue(stream);
@@ -47,17 +49,17 @@ void FunctionDefinition::EmitRISC(std::ostream& stream,
         int offset = context.locals.at(decl->GetName());
         TypeSpecifier type = decl->GetType(context);
         if (type == TypeSpecifier::FLOAT) {
-            if (float_arg < 8) {
-                stream << "  fsw fa" << float_arg++ << ", " << offset << "(s0)\n";
-            }
+          if (float_arg < 8) {
+            stream << "  fsw fa" << float_arg++ << ", " << offset << "(s0)\n";
+          }
         } else if (type == TypeSpecifier::DOUBLE) {
-            if (float_arg < 8) {
-                stream << "  fsd fa" << float_arg++ << ", " << offset << "(s0)\n";
-            }
+          if (float_arg < 8) {
+            stream << "  fsd fa" << float_arg++ << ", " << offset << "(s0)\n";
+          }
         } else {
-            if (int_arg < 8) {
-                stream << "  sw a" << int_arg++ << ", " << offset << "(s0)\n";
-            }
+          if (int_arg < 8) {
+            stream << "  sw a" << int_arg++ << ", " << offset << "(s0)\n";
+          }
         }
       }
     }

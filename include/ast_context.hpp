@@ -8,8 +8,10 @@
 
 #include "ast_type_specifier.hpp"
 
-extern std::unordered_set<std::string> global_typedef_names;  // Need to make global so parser can see
-extern std::unordered_map<std::string, ast::QualifiedType> global_type_aliases;  // type alias table for type def
+extern std::unordered_set<std::string>
+    global_typedef_names;  // Need to make global so parser can see
+extern std::unordered_map<std::string, ast::QualifiedType>
+    global_type_aliases;  // type alias table for type def
 extern int global_typedef_pointer_depth;
 
 extern std::unordered_map<std::string, int> global_enum_names;
@@ -52,6 +54,21 @@ class Context {
   std::unordered_set<std::string> globals;
   void RegisterGlobal(const std::string& name) { globals.insert(name); }
 
+  // context must be fresh each func; globals persist, locals dont
+  void Reset() {
+    locals.clear();
+    local_types.clear();
+    local_struct_type.clear();
+    locals_block_stack.clear();
+    local_types_block_stack.clear();
+    local_struct_type_scope_stack.clear();
+    next_local_offset = -8;
+    stack_frame_size = 16;
+    label_count = 0;
+    break_targets.clear();
+    continue_targets.clear();
+  }
+
   // label counter for control flow
   int label_count = 0;
   int AllocateLabel() { return label_count++; }
@@ -68,22 +85,22 @@ class Context {
   std::vector<std::unordered_map<std::string, std::string>>
       local_struct_type_scope_stack;
 
-  void EnterBlock(){
+  void EnterBlock() {
     locals_block_stack.push_back(locals);
     local_types_block_stack.push_back(local_types);
     local_struct_type_scope_stack.push_back(local_struct_type);
   }
 
-  void ExitBlock(){
-    if (!locals_block_stack.empty()){
+  void ExitBlock() {
+    if (!locals_block_stack.empty()) {
       locals = std::move(locals_block_stack.back());
       locals_block_stack.pop_back();
     }
-    if (!local_types_block_stack.empty()){
+    if (!local_types_block_stack.empty()) {
       local_types = std::move(local_types_block_stack.back());
       local_types_block_stack.pop_back();
     }
-    if (!local_struct_type_scope_stack.empty()){
+    if (!local_struct_type_scope_stack.empty()) {
       local_struct_type = std::move(local_struct_type_scope_stack.back());
       local_struct_type_scope_stack.pop_back();
     }
