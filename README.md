@@ -1,80 +1,16 @@
-2025/26 Compilers Coursework
-==============================
+<div align="center">
+  <img src="dashboard/Images/transparent_logo_compilates.png" alt="ComPilates Logo" width="200"/>
 
-There are two components to the coursework:
+  # ComPilates:  C90 to RISC-V Compiler
 
-- Worth 90%:
-    - **A C compiler**. The source language is pre-processed C90, and the target language is RISC-V assembly. The target environment is Ubuntu 22.04, as described [here](docs/environment_guide.md). See [here](docs/c_compiler.md) for the full set of requirements and more information about the testing environment.
+  **Archie & Sam** | Imperial College London, Compilers Coursework 2025/26
+</div>
 
-- Worth 10%:
-    - **Overall design style and code readability.** This has been introduced to reward thoughtful planning throughout the project, rather than penalise you. There are no strict guidelines, but you should consider the use of abstraction, your internal representation of instructions, proper Git use, signs of appropriate testing, as well as general code hygiene.
-    - **Evidence of time-tracking/project management.** This will be assessed orally at the start of Summer term. See [here](docs/management.md) for more information about this component.
+---
 
-Repositories
-============
+## What it does
 
-Each group gets a bare private repository. It is up to you if you want to clone the main specification, or to start from scratch.
+Compiles a subset of **C90** to **RISC-V assembly** (RV32IM), targeting Ubuntu 22.04.
 
-Submission
-==========
+Built using Flex (lexer), Bison (parser), and a hand written AST with RISC-V code generation.
 
-The deadline for submitting your C compiler is **Friday 20 March 2026 at 15:00**. There is no deadline for the project management component; instead, this will be assessed by a short oral viva that will be organised in Summer term.
-
-Submission will be via GitHub (code) and my Excel spreadsheet (commit hash), as in the labs.
-
-Your compiler will only be tested on *valid* inputs, so you do not need to handle faulty inputs in a graceful way.
-
-There is no expectation for your compiler to *optimise* its input for the vast majority of the test cases -- it should simply generate code that calculates the correct answer. However -- new for 2025-26 -- there is a very small number of test cases that will only pass if your compiler has the ability to remove dead code. This is simply to provide a stretch goal for the (very few) teams who want to implement some optimisations and would like to be recognised for it. If you do not implement any optimisations, not passing these test-cases won't have an appreciable effect on your mark.
-
-Changelog
-=========
-
-* New for 2025/2026:
-    * A couple of tests that are designed to check whether your compiler is able to remove dead code.
-    * Automatic code formatter, specified in [`.clang-format`](./.clang-format)
-    * Added CMake as an alternative along `make`, for quicker builds
-    * `test.py --validate_tests` as a way to run GCC on all tests to ensure that environment has been set correctly, replacing `toolchain_test.sh`
-    * Updated [`Dockerfile`](./Dockerfile), docker image artifact, and GHCR environment to use Ubuntu 24 and more recent dependencies
-    * Wrote about recommended [extentions to the project](./docs/extension_ideas.md).
-
-
-* New for 2023/2024:
-
-    * Provided guidance to generate coverage information.
-    * Expanded features list and provided a visual test case distribution.
-    * Included useful links to Godbolt, simulator, ISA, ABI, Assembler reference.
-    * Directly linked to ANSI C parser and lexer.
-    * Added a "Getting started" guide and incorporated last year's feedback from Ed.
-    * Changed the 10% of the grade (previously only for time management) to also account for code design to reward thoughtful planning.
-    * Improved the skeleton compiler to be more advanced by integrating lexer and parser to hopefully jump-start progress and avoid unnecessary debugging.
-    * Covered assembler directives in more details by showcasing the meaning behind an example assembly program, because that topic had always caused confusion in the past years.
-    * Added an improved testing script written in Python.
-
-* New for 2022/2023:
-
-    * Target architecture is now RISC-V rather than MIPS, in order to align with the modernised Instruction Architectures half of the module.
-    * Instead of Vagrant, Docker is now used for the testing environment (with optional VS Code support).
-    * Test scripts are now provided to check your compiler against the set of public tests, without having to write this yourself.
-    * The basic compiler framework has been improved to support command line arguments.
-    * GitHub Actions can now perform automated testing of your compiler.
-
-* New for 2021/2022:
-
-    * Various improvements to scripts for running test cases.
-
-* New for 2020/2021:
-
-    * In previous years, students were additionally required to submit a C-to-Python translator, as a "ramping up" task. This extra deliverable has been removed, as the labs provide plenty of "ramping up" practice.
-
-    * We have provided a really basic compiler that simply ignores its input and produces a fixed, valid RISC-V assembly program. This should help you to get started a bit more rapidly.
-
-* New for 2019/2020:
-
-    * In previous years, students were additionally required to submit a set of testcases. This deliverable has been removed; instead, a large collection of testcases has been provided for you, as this was judged to be more useful.
-
-    * In previous years, the compiler component counted for 42.8% of the module; it now counts for 55%. It was felt that this weighting more accurately reflects the effort that students put in to building a working compiler.
-
-Acknowledgements
-================
-
-The coursework was originally designed by [David Thomas](https://www.southampton.ac.uk/people/5z9bmb/professor-david-thomas), who lectured this module until 2017-18. It is nowadays maintained by [John Wickerson](https://johnwickerson.github.io/), to whom any feedback should be sent. I'd like to thank Quentin Corradi, Archie Crichton, Yann Herklotz, William Huynh, James Nock, Simon Staal, Pierce Wiegerling, and Filip Wojcicki for making many contributions to this repository over several years, such as improving the compiler-testing scripts, providing a basic "getting started" compiler, writing instructions for setting up development environments on a variety of operating systems, configuring automation using GitHub actions, adding test-cases, and setting up coverage testing.
