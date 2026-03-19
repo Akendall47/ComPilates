@@ -54,7 +54,7 @@ class StructDeclaration : public Node {
   }
 
   int CountDeclarations() const override {
-    return 1;  // stack frame sizing — actual byte count handled by
+    return 1;  // stack frame sizing: actual byte count handled by
                // AllocateStruct
   }
 };
@@ -71,9 +71,11 @@ class StructMemberGet : public Node {
 
   void EmitRISC(std::ostream& stream, Context& context) const override {
     int instance_base = context.locals.at(instance_name_);
+
     const std::string& struct_tag =
         context.local_struct_type.at(instance_name_);
     const StructDef& layout = context.struct_types.at(struct_tag);
+
     for (const auto& member : layout.members) {
       if (member.name == field_name_) {
         stream << "  lw      a0, " << (instance_base + member.offset)
@@ -102,11 +104,13 @@ class StructMemberSet : public Node {
         rhs_(std::move(rhs)) {}
 
   void EmitRISC(std::ostream& stream, Context& context) const override {
-    rhs_->EmitRISC(stream, context);  // a0 = value to store
+    rhs_->EmitRISC(stream, context);
     int instance_base = context.locals.at(instance_name_);
+
     const std::string& struct_tag =
         context.local_struct_type.at(instance_name_);
     const StructDef& layout = context.struct_types.at(struct_tag);
+
     for (const auto& member : layout.members) {
       if (member.name == field_name_) {
         stream << "  sw      a0, " << (instance_base + member.offset)

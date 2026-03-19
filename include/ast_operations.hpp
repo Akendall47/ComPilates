@@ -35,7 +35,7 @@ class UnaryOp : public Node {
   void Print(std::ostream& stream) const override;
 };
 
-// &x — computes the address of its operand (must be an Identifier lvalue)
+// &x: computes the address of its operand (must be an Identifier lvalue)
 // EmitRISC: addi a0, s0, <offset>  (no memory load — just the address itself)
 class AddressOf : public ast::Node {
  private:

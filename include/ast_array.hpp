@@ -26,7 +26,7 @@ class ArrayDeclaration : public Node {
 class ArraySubscript : public Node {
  private:
   std::string name_;
-  NodePtr index_;  // index expression, e.g. Identifier("i") or BinaryOp
+  NodePtr index_;
 
  public:
   ArraySubscript(std::string name, NodePtr index)

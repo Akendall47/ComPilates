@@ -11,7 +11,7 @@ void FunctionDefinition::EmitRISC(std::ostream& stream,
   if (compound_statement_ == nullptr) {
     return;
   }
-  // extract func name via GetName() — declarator_ is always a DirectDeclarator
+  // extract func name via GetName() ; declarator_ is always a DirectDeclarator
   auto& dd = dynamic_cast<const DirectDeclarator&>(*declarator_);
   context.current_function = dd.GetName();
   context.Reset();  // clear locals/offsets from any previous function

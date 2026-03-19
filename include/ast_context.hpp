@@ -41,13 +41,13 @@ class Context {
   std::string current_function;
   int stack_frame_size = 16;
 
-  // symbol table: name -> s0-relative offset (base of struct for structs)
+  // symbol table: name for s0 relative offset (base of struct for structs)
   std::unordered_map<std::string, int> locals;
 
-  // type table: name -> QualifiedType (base type + pointer depth)
+  // type table: name to QualifiedType (base type + pointer depth)
   std::unordered_map<std::string, QualifiedType> local_types;
 
-  // struct instance name -> struct type name
+  // struct instance name to struct type name
   std::unordered_map<std::string, std::string> local_struct_type;
 
   // global arrays declared at file scope

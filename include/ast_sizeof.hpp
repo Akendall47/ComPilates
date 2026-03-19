@@ -7,7 +7,7 @@
 
 namespace ast {
 
-// sizeof(variable) — handles scalars, pointers, and structs
+// sizeof(variable) ; handles scalars, pointers, and structs
 class SizeOf : public Node {
   std::string operand_name_;
 
@@ -21,8 +21,10 @@ class SizeOf : public Node {
       const std::string& struct_tag =
           context.local_struct_type.at(operand_name_);
       byte_size = context.struct_types.at(struct_tag).total_size;
+
     } else if (context.local_types.count(operand_name_)) {
-      byte_size = context.GetTypeSize(context.local_types.at(operand_name_).base);
+      byte_size =
+          context.GetTypeSize(context.local_types.at(operand_name_).base);
     }
     stream << "  li      a0, " << byte_size << "\n";
   }
@@ -32,7 +34,7 @@ class SizeOf : public Node {
   }
 };
 
-// sizeof(type) — e.g. sizeof(int), sizeof(char)
+// sizeof(type): e.g. sizeof(int)
 class SizeOfType : public Node {
   TypeSpecifier type_;
 
@@ -48,16 +50,14 @@ class SizeOfType : public Node {
   }
 };
 
-// sizeof(type *) — all pointers are 4 bytes on 32-bit RISC-V
+// sizeof(type *) : all pointers 4 bytes:  32-bit RISC-V
 class SizeOfPointer : public Node {
  public:
   void EmitRISC(std::ostream& stream, Context&) const override {
     stream << "  li      a0, 4\n";
   }
 
-  void Print(std::ostream& stream) const override {
-    stream << "sizeof(ptr)";
-  }
+  void Print(std::ostream& stream) const override { stream << "sizeof(ptr)"; }
 };
 
 }  // namespace ast

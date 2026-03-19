@@ -1,8 +1,8 @@
+#include <csignal>
 #include <fstream>
 #include <iostream>
-#include <csignal>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "ast.hpp"
 #include "cli.hpp"
@@ -11,7 +11,6 @@ using ast::NodePtr;
 
 // Wrapper for ParseAST defined in YACC
 NodePtr Parse(const std::string& compile_source_path);
-
 
 // Output the pretty print version of what was parsed to the .printed output
 // file.
