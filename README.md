@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="dashboard/Images/transparent_logo_compilates.png" alt="ComPilates Logo" width="200"/>
+  <img src="dashboard/Images/transparent_logo_compilates.png" alt="ComPilates Logo" width="600"/>
 
-  # ComPilates:  C90 to RISC-V Compiler
+  # ComPilates:  a flexible C90 to RISC-V Compiler
 
-  **Archie & Sam** | Imperial College London, Compilers Coursework 2025/26
+  **Archie & Sam** | Your ComPilates Instructors | Imperial College London, Compilers Coursework 2025/26
 </div>
 
 ---
